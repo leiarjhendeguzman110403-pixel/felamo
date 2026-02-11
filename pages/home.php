@@ -7,14 +7,22 @@ $isSuperAdmin = $user['role'] === 'super_admin';
 <input type="hidden" id="hidden_is_super_admin" value="<?= $isSuperAdmin ? 'true' : 'false' ?>">
 
 <style>
-    /* --- RESET --- */
+    /* --- FORCE RESET --- */
     .navbar { display: none !important; }
     body { background-color: #f4f6f9; overflow-x: hidden; }
-    .dashboard-wrapper { display: flex; min-height: 100vh; width: 100%; overflow-x: hidden; }
+    
+    /* Wrapper Layout */
+    .dashboard-wrapper { 
+        display: flex; 
+        min-height: 100vh; 
+        width: 100%; 
+        overflow-x: hidden; 
+        transition: all 0.3s ease;
+    }
 
-    /* --- SIDEBAR CSS (THIS MAKES IT VISIBLE) --- */
+    /* --- SIDEBAR STYLES (NUCLEAR FIX) --- */
     .sidebar { 
-        width: 280px; 
+        width: 280px !important;            /* Force fixed width */
         background: linear-gradient(180deg, #a71b1b 0%, #880f0b 100%); 
         color: white; 
         display: flex; 
@@ -22,12 +30,51 @@ $isSuperAdmin = $user['role'] === 'super_admin';
         padding: 20px; 
         position: fixed; 
         height: 100vh; 
-        z-index: 1000; 
-        left: 0; 
-        transition: all 0.3s ease; 
-        overflow: visible !important; /* Important for the arrow */
+        z-index: 9000 !important;           /* Very high Z-Index */
+        left: 0 !important; 
+        transition: left 0.3s ease !important; 
+        overflow: visible !important;       /* CRITICAL: Lets the button stick out */
     }
 
+    /* --- BUTTON STYLES (THE YELLOW ARROW) --- */
+    .sidebar-toggle { 
+        position: absolute !important;
+        right: -30px !important;            /* Sticks out 30px to the right */
+        top: 50% !important;
+        width: 30px !important; 
+        height: 60px !important; 
+        background-color: #FFC107 !important; /* Bright Yellow */
+        border: 2px solid #880f0b !important; /* Red Border to make it pop */
+        border-left: none !important;
+        border-radius: 0 8px 8px 0 !important; 
+        display: flex !important; 
+        align-items: center; 
+        justify-content: center; 
+        cursor: pointer; 
+        color: #000 !important;             /* Black Arrow */
+        z-index: 9999 !important;           /* HIGHEST Z-Index (Above Sidebar) */
+        box-shadow: 4px 0 5px rgba(0,0,0,0.2) !important;
+    }
+
+    /* --- CLOSED STATE (WHEN YOU CLICK) --- */
+    /* 1. Move Sidebar completely off screen (-280px) */
+    .dashboard-wrapper.toggled .sidebar { 
+        left: -280px !important; 
+    }
+
+    /* 2. Since button is 'right: -30px', it will sit at screen edge (0px to 30px) */
+    
+    /* 3. Adjust Content Margin */
+    .dashboard-wrapper.toggled .main-content { 
+        margin-left: 0 !important; 
+    }
+
+    /* 4. Flip the arrow */
+    .dashboard-wrapper.toggled .sidebar-toggle i { 
+        transform: rotate(180deg); 
+    }
+
+    /* --- REST OF DASHBOARD STYLES --- */
     .sidebar-profile { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.5); }
     .sidebar-profile img { width: 80px !important; height: 80px !important; border-radius: 50%; object-fit: cover; border: 2px solid white; max-width: 100%; display: block; }
     .sidebar-profile h5 { font-weight: bold; margin: 0; font-size: 1.2rem; text-transform: uppercase; }
@@ -40,27 +87,10 @@ $isSuperAdmin = $user['role'] === 'super_admin';
     .logout-btn { margin-top: auto; background-color: #FFC107; color: black; font-weight: bold; border: none; width: 100%; padding: 12px; border-radius: 25px; text-align: center; text-decoration: none; cursor: pointer; }
     .logout-btn:hover { background-color: #e0a800; color: black; }
 
-    .sidebar-toggle { position: absolute; right: -15px; top: 50%; width: 30px; height: 60px; background-color: #FFC107; border-radius: 0 4px 4px 0; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #333; transition: right 0.3s ease; z-index: 1001; }
-    .sidebar-toggle i { transition: transform 0.3s ease; }
-
-    .dashboard-wrapper.toggled .sidebar { left: -280px; }
-    .dashboard-wrapper.toggled .main-content { margin-left: 0; }
-    .dashboard-wrapper.toggled .sidebar-toggle { right: -30px; }
-    .dashboard-wrapper.toggled .sidebar-toggle i { transform: rotate(180deg); }
-
-    /* --- CONTENT CSS --- */
     .main-content { flex: 1; margin-left: 280px; padding: 30px 40px; transition: all 0.3s ease; }
     .page-header { background: linear-gradient(180deg, #a71b1b 0%, #880f0b 100%); color: white; padding: 15px 30px; border-radius: 8px; font-weight: bold; font-size: 1.5rem; margin-bottom: 20px; text-transform: uppercase; }
     .stats-card { border: none; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%; transition: transform 0.3s ease, box-shadow 0.3s ease; cursor: pointer; }
-    
-    /* --- CHANGE MADE HERE --- */
-    .stats-card:hover { 
-        transform: translateY(-8px); 
-        /* Changed color to distinct red with some transparency */
-        box-shadow: 0 12px 20px rgba(255, 0, 0, 0.4); 
-    }
-    /* ------------------------ */
-
+    .stats-card:hover { transform: translateY(-8px); box-shadow: 0 12px 20px rgba(255, 0, 0, 0.4); }
     .stats-header { background: linear-gradient(180deg, #880f0b 0%, #ce3c3c 100%); color: white; padding: 10px; text-align: center; font-weight: bold; font-size: 1.1rem; }
     .stats-body { background-color: #e5e5e5; padding: 20px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 150px; shadow: #880f0b;}
     .stats-label { font-size: 0.9rem; font-weight: bold; color: #333; margin-bottom: 5px; }
@@ -126,15 +156,23 @@ $isSuperAdmin = $user['role'] === 'super_admin';
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     $(document).ready(function() {
-        // --- 1. SIDEBAR TOGGLE LOGIC ---
-        // This is the ONLY JS needed for the arrow.
-        $(document).off('click', '.sidebar-toggle').on('click', '.sidebar-toggle', function() {
+        console.log("Dashboard Loaded");
+
+        // --- NUCLEAR TOGGLE LOGIC ---
+        // 1. Unbind any previous clicks to prevent double-firing
+        $(document).off('click', '.sidebar-toggle');
+        
+        // 2. Bind the new click event
+        $(document).on('click', '.sidebar-toggle', function(e) {
+            e.preventDefault();
+            e.stopPropagation(); // Stop bubbling
+            console.log("Toggle Clicked"); // Debugging
+            
+            // Toggle the class on the wrapper
             $(".dashboard-wrapper").toggleClass("toggled");
         });
 
-        // --- 2. LOGOUT LOGIC REMOVED (Handled by Bootstrap HTML in sidebar.php) ---
-
-        // --- 3. LOAD DATA LOGIC ---
+        // --- LOAD DATA LOGIC (UNCHANGED) ---
         const hidden_user_id = $("#hidden_user_id").val();
         const is_super_admin = $("#hidden_is_super_admin").val();
 
