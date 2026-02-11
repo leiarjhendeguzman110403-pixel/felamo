@@ -188,26 +188,19 @@ $isSuperAdmin = $user['role'] === 'super_admin';
         });
 
         // ============================================
-        // === FIXED DOWNLOAD LOGIC ===
+        // === DOWNLOAD LOGIC ===
         // ============================================
-
-        // 1. Button: "Download" -> Downloads Dashboard Summary (CSV)
         $("#btnDownload").on("click", function(e) {
             e.preventDefault();
             const userId = $("#hidden_user_id").val();
             const isSuperAdmin = $("#hidden_is_super_admin").val();
-            
-            // Redirect to the dashboard export script
             window.location.href = `../backend/api/web/export_dashboard.php?user_id=${userId}&is_admin=${isSuperAdmin}`;
         });
 
-        // 2. Button: "Download Student Data" -> Downloads Student List (CSV)
         $("#btnDownloadStudentData").on("click", function(e) {
             e.preventDefault();
             const userId = $("#hidden_user_id").val();
             const isSuperAdmin = $("#hidden_is_super_admin").val();
-
-            // Redirect to the student export script
             window.location.href = `../backend/api/web/export_students.php?teacher_id=${userId}&is_admin=${isSuperAdmin}`;
         });
 
@@ -222,8 +215,9 @@ $isSuperAdmin = $user['role'] === 'super_admin';
                 success: function(response) {
                     try {
                         let res = JSON.parse(response);
+                        
+                        // === SUPER ADMIN DASHBOARD ===
                         if (is_super_admin == "true") {
-                            // ... (Your existing Super Admin Chart Logic) ...
                              $("#unang-markahan-videos-uploaded-count").text(res.data.vid_uploaded_count[0]?.video_count || 0);
                             $("#pangalawang-markahan-videos-uploaded-count").text(res.data.vid_uploaded_count[1]?.video_count || 0);
                             $("#pangatlong-markahan-videos-uploaded-count").text(res.data.vid_uploaded_count[2]?.video_count || 0);
@@ -233,38 +227,116 @@ $isSuperAdmin = $user['role'] === 'super_admin';
                             
                             var vidUploadedCtx = document.getElementById('videos-uploaded-chart').getContext('2d');
                             if (Chart.getChart("videos-uploaded-chart")) { Chart.getChart("videos-uploaded-chart").destroy(); }
+                            
                             var gradient = vidUploadedCtx.createLinearGradient(0, 0, 0, 400);
                             gradient.addColorStop(0, '#a71b1b'); gradient.addColorStop(1, '#880f0b');
-                            new Chart(vidUploadedCtx, { type: 'bar', data: { labels: ['Unang', 'Pangalawa', 'Pangatlo', 'Ika-apat'], datasets: [{ label: 'Uploaded Videos', data: [res.data.vid_uploaded_count[0]?.video_count||0, res.data.vid_uploaded_count[1]?.video_count||0, res.data.vid_uploaded_count[2]?.video_count||0, res.data.vid_uploaded_count[3]?.video_count||0], backgroundColor: gradient }] } });
+                            
+                            new Chart(vidUploadedCtx, { 
+                                type: 'bar', 
+                                data: { 
+                                    labels: ['Unang', 'Pangalawa', 'Pangatlo', 'Ika-apat'], 
+                                    datasets: [{ 
+                                        label: 'Uploaded Videos', 
+                                        data: [res.data.vid_uploaded_count[0]?.video_count||0, res.data.vid_uploaded_count[1]?.video_count||0, res.data.vid_uploaded_count[2]?.video_count||0, res.data.vid_uploaded_count[3]?.video_count||0], 
+                                        backgroundColor: gradient 
+                                    }] 
+                                } 
+                            });
+
+                        // === TEACHER DASHBOARD ===
                         } else {
-                            // ... (Your existing Teacher Chart Logic) ...
                             $("#dashboard-my-section-count-count").text(res.data.section_count);
                             $("#dashboard-my-student-count").text(res.data.total_students);
                             
-                            // Map data to cards
+                            // Initialize data arrays for the chart (ensures correct order)
+                            let passedData = [0, 0, 0, 0];
+                            let failedData = [0, 0, 0, 0];
                             const levels = ['unang', 'pangalawang', 'pangatlong', 'ika-apat-na'];
-                            res.data.level_stats.forEach((stat, index) => {
-                                if(levels[index]) {
-                                    $(`#${levels[index]}-markahan-no-of-passed-student`).text(stat.passed_count);
-                                    $(`#${levels[index]}-markahan-no-of-failed-student`).text(stat.failed_count);
-                                }
-                            });
-                            res.data.completed_stats.forEach((stat, index) => {
-                                if(levels[index]) {
-                                    $(`#${levels[index]}-markahan-student-video-completion-count`).text(stat.count);
-                                }
-                            });
 
-                            var passFailedCtx = document.getElementById('passed-failed-student-chart').getContext('2d');
-                            if (Chart.getChart("passed-failed-student-chart")) { Chart.getChart("passed-failed-student-chart").destroy(); }
-                            new Chart(passFailedCtx, { type: 'line', data: { labels: ['Unang', 'Pangalawa', 'Pangatlo', 'Ika-apat'], datasets: [{ label: 'Passed', data: [res.data.level_stats[0]?.passed_count||0, res.data.level_stats[1]?.passed_count||0, res.data.level_stats[2]?.passed_count||0, res.data.level_stats[3]?.passed_count||0], borderColor: 'blue', backgroundColor: 'rgba(0, 0, 255, 0.1)', fill: true }, { label: 'Failed', data: [res.data.level_stats[0]?.failed_count||0, res.data.level_stats[1]?.failed_count||0, res.data.level_stats[2]?.failed_count||0, res.data.level_stats[3]?.failed_count||0], borderColor: 'green', backgroundColor: 'rgba(0, 255, 21, 0.1)', fill: true }] } });
+                            // Process Level Stats
+                            if(res.data.level_stats && res.data.level_stats.length > 0) {
+                                res.data.level_stats.forEach((stat) => {
+                                    // 1. Fill Card Data & Links
+                                    let levelIndex = stat.level - 1; // 1->0, 2->1, etc.
+                                    let levelKey = levels[levelIndex];
+
+                                    if(levelKey) {
+                                        $(`#${levelKey}-markahan-no-of-passed-student`).text(stat.passed_count);
+                                        $(`#${levelKey}-markahan-no-of-failed-student`).text(stat.failed_count);
+                                        // FIX: Set the View Details Link
+                                        $(`#link-${levelKey}-markahan`).attr('href', `level_details.php?level=${stat.id}`);
+                                    }
+
+                                    // 2. Fill Chart Data Arrays (safely)
+                                    if(levelIndex >= 0 && levelIndex < 4) {
+                                        passedData[levelIndex] = stat.passed_count;
+                                        failedData[levelIndex] = stat.failed_count;
+                                    }
+                                });
+                            }
+
+                            // Process Completed Stats
+                            if(res.data.completed_stats) {
+                                res.data.completed_stats.forEach((stat) => {
+                                    let levelKey = levels[stat.level - 1];
+                                    if(levelKey) {
+                                        $(`#${levelKey}-markahan-student-video-completion-count`).text(stat.count);
+                                    }
+                                });
+                            }
+
+                            // --- BAR GRAPH LOGIC ---
+                            var canvas = document.getElementById('passed-failed-student-chart');
+                            if (canvas) {
+                                var passFailedCtx = canvas.getContext('2d');
+                                
+                                // Safely destroy previous instance
+                                try {
+                                    if (Chart.getChart("passed-failed-student-chart")) { 
+                                        Chart.getChart("passed-failed-student-chart").destroy(); 
+                                    }
+                                } catch (err) { console.warn("Chart destroy error ignored:", err); }
+
+                                new Chart(passFailedCtx, { 
+                                    type: 'bar', // Set to Bar
+                                    data: { 
+                                        labels: ['Unang', 'Pangalawa', 'Pangatlo', 'Ika-apat'], 
+                                        datasets: [
+                                            { 
+                                                label: 'Passed', 
+                                                data: passedData, 
+                                                borderColor: 'blue', 
+                                                backgroundColor: 'rgba(54, 162, 235, 0.7)', // Blue bars
+                                                borderWidth: 1
+                                            }, 
+                                            { 
+                                                label: 'Failed', 
+                                                data: failedData, 
+                                                borderColor: 'green', 
+                                                backgroundColor: 'rgba(75, 192, 192, 0.7)', // Green bars
+                                                borderWidth: 1
+                                            }
+                                        ] 
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        scales: {
+                                            y: {
+                                                beginAtZero: true,
+                                                ticks: { stepSize: 1 }
+                                            }
+                                        }
+                                    }
+                                });
+                            }
                         }
                     } catch(e) { console.error("Parse Error", e); }
                 }
             });
         }
+        
         loadDashBoard();
-        setInterval(loadDashBoard, 3000);
+        setInterval(loadDashBoard, 5000); // Increased interval to 5s to reduce flickering
     });
 </script>
 <?php include("components/footer.php"); ?>
