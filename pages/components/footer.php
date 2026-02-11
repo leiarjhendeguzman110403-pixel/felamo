@@ -7,12 +7,8 @@
 
 <script>
     $(document).ready(function() {
-        // Sidebar Toggle
-        $(document).on('click', '.sidebar-toggle', function() {
-            $(".dashboard-wrapper").toggleClass("toggled");
-        });
-
         // Logout Confirmation Logic
+        // Note: Sidebar toggle logic is now handled exclusively in the parent page (e.g., home.php)
         $(document).on('click', '#logoutBtn', function(e) {
             e.preventDefault();
             var myModal = new bootstrap.Modal(document.getElementById('logoutModal'));
@@ -21,5 +17,4 @@
     });
 </script>
 </body>
-</html>
 </html>

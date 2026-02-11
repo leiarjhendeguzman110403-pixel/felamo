@@ -89,7 +89,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
         top: 0 !important; bottom: 0 !important; left: 0 !important; 
         z-index: 1000 !important;           
         transition: transform 0.3s ease !important;
-        /* We don't care about overflow anymore because button is gone */
     }
 
     /* --- THE BUTTON (FIXED TO SCREEN, NOT SIDEBAR) --- */
@@ -135,14 +134,3 @@ $current_page = basename($_SERVER['PHP_SELF']);
         transform: rotate(180deg) !important; 
     }
 </style>
-
-<script>
-    $(document).ready(function() {
-        // Simple, conflict-free click handler
-        $(document).off('click', '#sidebarToggleBtn').on('click', '#sidebarToggleBtn', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            $(".dashboard-wrapper").toggleClass("toggled");
-        });
-    });
-</script>
