@@ -137,10 +137,83 @@ class AuthController extends db_connect
         }
     }
 
+    public function UpdateProfilePicture($id, $file)
+    {
+        // 1. Prevent outputting text before JSON
+        ob_clean(); 
+
+        // 2. Validate File Error
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['status' => 'error', 'message' => 'File upload error code: ' . $file['error']]);
+            return;
+        }
+
+        // 3. Validate File Type
+        $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed)) {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid file type. Only JPG, PNG, and GIF allowed.']);
+            return;
+        }
+
+        // 4. Define Paths
+        // Absolute path for saving the file
+        $uploadDir = __DIR__ . '/../storage/profile-pictures/';
+        
+        // Create directory if it doesn't exist
+        if (!file_exists($uploadDir)) {
+            if (!mkdir($uploadDir, 0777, true)) {
+                echo json_encode(['status' => 'error', 'message' => 'Failed to create upload directory.']);
+                return;
+            }
+        }
+
+        // Generate filename
+        $filename = 'admin_' . $id . '_' . time() . '.' . $ext;
+        $targetPath = $uploadDir . $filename;
+        
+        // Relative path for Database (access from frontend)
+        $dbPath = 'backend/storage/profile-pictures/' . $filename;
+
+        // 5. Move File
+        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+            // 6. Update Database
+            $stmt = $this->conn->prepare("UPDATE `admin` SET `profile_picture` = ? WHERE `id` = ?");
+            if ($stmt) {
+                $stmt->bind_param("si", $dbPath, $id);
+                if ($stmt->execute()) {
+                    // Update Session Variable if you are modifying the currently logged-in user
+                    if (session_status() === PHP_SESSION_NONE) session_start();
+                    if (isset($_SESSION['id']) && $_SESSION['id'] == $id) {
+                       // Optional: You might store user data in session, update it here if needed
+                    }
+
+                    echo json_encode([
+                        'status' => 'success', 
+                        'message' => 'Profile picture updated.',
+                        'new_path' => $dbPath
+                    ]);
+                } else {
+                    echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $stmt->error]);
+                }
+                $stmt->close();
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'Database prepare failed: ' . $this->conn->error]);
+            }
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Failed to move uploaded file. Check folder permissions.']);
+        }
+    }
+
     public function UpdateUser($id, $name, $email, $newPassword)
     {
-        $hashedPassword = null;
+        // 1. Check Connection
+        if (!$this->conn) {
+            echo json_encode(['status' => 'error', 'message' => 'Database connection failed.']);
+            return;
+        }
 
+        $hashedPassword = null;
         if (!empty($newPassword)) {
             $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
         }
@@ -154,10 +227,7 @@ class AuthController extends db_connect
         }
 
         if (!$stmt) {
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Prepare failed: ' . $this->conn->error
-            ]);
+            echo json_encode(['status' => 'error', 'message' => 'Query Prepare failed: ' . $this->conn->error]);
             return;
         }
 
@@ -167,9 +237,10 @@ class AuthController extends db_connect
                 'message' => 'User updated successfully.'
             ]);
         } else {
+            // This catches duplicate email errors
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Execute failed: ' . $stmt->error
+                'message' => 'Update failed (Email might be taken): ' . $stmt->error
             ]);
         }
 

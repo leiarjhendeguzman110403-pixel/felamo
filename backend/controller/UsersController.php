@@ -42,5 +42,6 @@ class UsersController extends db_connect
                 'message' => 'Something went wrong.'
             ]);
         }
+        
     }
 }

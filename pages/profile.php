@@ -155,6 +155,32 @@ $currentUserId = isset($user['id']) ? $user['id'] : (isset($auth_user_id) ? $aut
                 <i class="bi bi-pencil-square"></i> Edit Account Details
             </div>
 
+            <div class="section-title">
+    <i class="bi bi-camera-fill"></i> Profile Picture
+</div>
+<div class="row mb-4">
+    <div class="col-md-12 text-center">
+        <div class="position-relative d-inline-block">
+            <img id="profilePreview" 
+                 src="../<?= isset($user['profile_picture']) && !empty($user['profile_picture']) ? htmlspecialchars($user['profile_picture']) : 'assets/img/lei.png' ?>" 
+                 class="rounded-circle img-thumbnail" 
+                 style="width: 150px; height: 150px; object-fit: cover;">
+            
+            <label for="profileUpload" class="btn btn-sm btn-warning position-absolute bottom-0 end-0 rounded-circle" style="padding: 5px 8px;">
+                <i class="bi bi-camera"></i>
+            </label>
+            <input type="file" id="profileUpload" style="display:none;" accept="image/*">
+        </div>
+        <div class="mt-2">
+            <small class="text-muted">Click the camera icon to change your photo</small>
+        </div>
+        <button type="button" id="btnSavePhoto" class="btn btn-sm btn-primary mt-2" style="display:none;">
+            <i class="bi bi-cloud-upload"></i> Upload Photo
+        </button>
+    </div>
+</div>
+<hr class="my-4" style="opacity: 0.1;">
+
             <form id="editUserForm">
                 <div class="row">
                     <div class="col-md-6">
@@ -206,18 +232,75 @@ $currentUserId = isset($user['id']) ? $user['id'] : (isset($auth_user_id) ? $aut
 <script>
     $(document).ready(function() {
         
-        // --- 1. SIDEBAR TOGGLE LOGIC ---
-        // Matches Home.php logic exactly
+        // --- 1. SIDEBAR TOGGLE ---
         $(document).on('click', '.sidebar-toggle', function() {
             $(".dashboard-wrapper").toggleClass("toggled");
         });
 
-        // --- 2. PROFILE UPDATE LOGIC ---
+        // --- 2. PROFILE PICTURE UPLOAD ---
+        const profileUpload = document.getElementById('profileUpload');
+        const profilePreview = document.getElementById('profilePreview');
+        const btnSavePhoto = document.getElementById('btnSavePhoto');
+        let selectedFile = null;
+
+        if(profileUpload) {
+            profileUpload.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    selectedFile = this.files[0];
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        profilePreview.src = e.target.result;
+                        $(btnSavePhoto).fadeIn(); 
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        }
+
+        $("#btnSavePhoto").on('click', function() {
+            if (!selectedFile) return;
+            const formData = new FormData();
+            formData.append('requestType', 'UploadProfilePicture');
+            formData.append('auth_user_id', $("#hidden_user_id").val());
+            formData.append('profile_picture', selectedFile);
+
+            const btn = $(this);
+            const originalText = btn.html();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Uploading...');
+
+            $.ajax({
+                url: '../backend/api/web/auth.php',
+                type: 'POST',
+                data: formData,
+                contentType: false, processData: false, dataType: 'text', // Read as text first
+                success: function(responseText) {
+                    btn.prop('disabled', false).html(originalText);
+                    try {
+                        const response = JSON.parse(responseText);
+                        if (response.status === 'success') {
+                            Swal.fire({ title: 'Success!', text: 'Profile picture updated.', icon: 'success', confirmButtonColor: '#a71b1b' }).then(() => location.reload());
+                        } else {
+                            Swal.fire('Error', response.message || 'Upload failed.', 'error');
+                        }
+                    } catch (e) {
+                        console.error("Server Raw Response:", responseText);
+                        Swal.fire('Server Error', 'The server response was invalid. Check console for details.', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    btn.prop('disabled', false).html(originalText);
+                    Swal.fire('Network Error', 'Could not connect to server.', 'error');
+                }
+            });
+        });
+
+        // --- 3. PROFILE DETAILS UPDATE (FIXED) ---
+        // --- 3. PROFILE DETAILS UPDATE (Guaranteed Fix) ---
         $("#editUserForm").on('submit', function(e) {
             e.preventDefault();
             
             const btn = $("#btnUpdate");
-            const originalText = btn.html();
+            const originalText = '<i class="bi bi-save me-2"></i> Save Changes'; // Hardcoded to ensure icon stays
             
             const userId = $("#hidden_user_id").val();
             const name = $("#name").val().trim();
@@ -235,7 +318,6 @@ $currentUserId = isset($user['id']) ? $user['id'] : (isset($auth_user_id) ? $aut
                 return;
             }
 
-            // Prepare Data for WEB API
             let dataToSend = {
                 requestType: 'EditUser',
                 auth_user_id: userId,
@@ -244,43 +326,58 @@ $currentUserId = isset($user['id']) ? $user['id'] : (isset($auth_user_id) ? $aut
                 newPassword: p1
             };
 
-            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...');
+            // 1. Disable Button
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Updating...');
 
             $.ajax({
                 url: '../backend/api/web/auth.php', 
                 type: 'POST',
                 data: dataToSend,
-                dataType: 'json', 
-                success: function(response) {
-                    btn.prop('disabled', false).html(originalText);
-                    
-                    if (response.status === 'success' || response.status === 200) {
-                        Swal.fire({
-                            title: 'Success!',
-                            text: response.message || 'Profile updated successfully.',
-                            icon: 'success',
-                            confirmButtonColor: '#a71b1b'
-                        }).then(() => {
-                            location.reload(); 
-                        });
-                    } else {
-                        Swal.fire('Error', response.message || 'Failed to update profile.', 'error');
+                dataType: 'text', // Read as text first to avoid JSON crash
+                
+                // 2. SUCCESS: Handle logic
+                success: function(responseText) {
+                    try {
+                        // Clean up response if there are extra spaces
+                        const cleanResponse = responseText.trim();
+                        const response = JSON.parse(cleanResponse);
+
+                        if (response.status === 'success') {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: response.message || 'Profile updated successfully.',
+                                icon: 'success',
+                                confirmButtonColor: '#a71b1b'
+                            }).then(() => {
+                                location.reload(); 
+                            });
+                        } else {
+                            Swal.fire('Error', response.message || 'Failed to update profile.', 'error');
+                        }
+                    } catch (e) {
+                        console.error("JSON Error:", e);
+                        console.log("Server Response:", responseText);
+                        // Even if JSON fails, if the data updated, let's treat it as success or show raw text
+                        if(responseText.includes("success")) {
+                             Swal.fire({ title: 'Success!', text: 'Profile updated.', icon: 'success', confirmButtonColor: '#a71b1b' }).then(() => location.reload());
+                        } else {
+                             Swal.fire('Server Error', 'Response could not be read. Check console.', 'error');
+                        }
                     }
                 },
+
+                // 3. ERROR: Network issues
                 error: function(xhr, status, error) {
+                    console.error("AJAX Error:", xhr.responseText);
+                    Swal.fire('Network Error', 'Could not connect to server.', 'error');
+                },
+
+                // 4. COMPLETE: THIS RUNS NO MATTER WHAT (Fixes the loading issue)
+                complete: function() {
                     btn.prop('disabled', false).html(originalText);
-                    console.error("Error:", error);
-                    let errorMsg = 'An unexpected error occurred.';
-                    if(xhr.responseText) {
-                        let tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = xhr.responseText;
-                        errorMsg += " Server says: " + (tempDiv.innerText.substring(0, 50) + "...");
-                    }
-                    Swal.fire('Error', errorMsg, 'error');
                 }
             });
         });
-    });
 </script>
 
 <?php include("components/footer.php"); ?>

@@ -4,11 +4,20 @@ $currentUserRole = $user['role'] ?? 'guest';
 $currentUserName = $user['name'] ?? 'User';
 $isSuperAdmin = $currentUserRole === 'super_admin';
 $current_page = basename($_SERVER['PHP_SELF']); 
+
+// --- LOGIC TO HANDLE PROFILE PICTURE ---
+$profilePicPath = "../backend/storage/assets/logo.png"; // Default
+
+// Check if the user has an uploaded picture
+if (!empty($user['profile_picture'])) {
+    $profilePicPath = "../" . $user['profile_picture'];
+}
 ?>
 
 <aside class="sidebar">
     <div class="sidebar-profile">
-        <img src="../backend/storage/assets/logo.png" alt="Profile"> 
+        <img src="<?= htmlspecialchars($profilePicPath) ?>?v=<?= time() ?>" alt="Profile"> 
+        
         <div>
             <a href="profile.php" style="color: inherit; text-decoration: none;">
                 <h5><?= htmlspecialchars($currentUserName) ?></h5>
@@ -77,7 +86,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 </div>
 
 <style>
-    /* --- SIDEBAR --- */
+    /* --- SIDEBAR CONTAINER --- */
     .sidebar { 
         width: 280px !important;            
         background: linear-gradient(180deg, #a71b1b 0%, #880f0b 100%) !important; 
@@ -91,10 +100,31 @@ $current_page = basename($_SERVER['PHP_SELF']);
         transition: transform 0.3s ease !important;
     }
 
-    /* --- THE BUTTON (FIXED TO SCREEN, NOT SIDEBAR) --- */
+    /* --- SIDEBAR PROFILE PICTURE FIX --- */
+    .sidebar-profile {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+    }
+    .sidebar-profile img {
+        width: 80px !important; 
+        height: 80px !important; 
+        min-width: 80px; /* Prevent shrinking */
+        min-height: 80px; 
+        border-radius: 50% !important; 
+        object-fit: cover !important; /* Forces image to fill circle without stretching */
+        border: 2px solid white; 
+        display: block;
+        background-color: white;
+    }
+
+    /* --- THE TOGGLE BUTTON --- */
     .sidebar-toggle { 
-        position: fixed !important; /* Fixed to the viewport */
-        left: 280px !important;     /* Starts exactly where sidebar ends */
+        position: fixed !important; 
+        left: 280px !important;     
         top: 50% !important;
         width: 30px !important; 
         height: 60px !important; 
@@ -107,29 +137,21 @@ $current_page = basename($_SERVER['PHP_SELF']);
         justify-content: center; 
         cursor: pointer !important; 
         color: #000 !important;             
-        z-index: 9999 !important;   /* Above everything */
-        transition: left 0.3s ease !important; /* Animate the slide */
+        z-index: 9999 !important;   
+        transition: left 0.3s ease !important; 
         box-shadow: 4px 0 5px rgba(0,0,0,0.2) !important;
     }
 
-    /* --- CLOSED STATE --- */
-    
-    /* 1. Slide Sidebar Off-Screen */
+    /* --- CLOSED STATE ANIMATIONS --- */
     .dashboard-wrapper.toggled .sidebar { 
         transform: translateX(-280px) !important; 
     }
-
-    /* 2. Slide Button to Left Edge (0px) */
     .dashboard-wrapper.toggled .sidebar-toggle { 
         left: 0px !important; 
     }
-
-    /* 3. Adjust Content Gap */
     .dashboard-wrapper.toggled .main-content { 
         margin-left: 0 !important; 
     }
-
-    /* 4. Flip Arrow */
     .dashboard-wrapper.toggled .sidebar-toggle i { 
         transform: rotate(180deg) !important; 
     }

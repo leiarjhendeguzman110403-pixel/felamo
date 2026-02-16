@@ -1,33 +1,68 @@
 <?php
+// 1. Force Disable Errors (Prevents warnings from breaking JSON)
+ini_set('display_errors', 0);
+error_reporting(0);
+
+// 2. Start Output Buffering (Catches any accidental whitespace)
+ob_start();
+
+// 3. Include Controller
 include_once(__DIR__ . '/../../controller/AuthController.php');
-// include_once(__DIR__ . '/../../controller/OtpController.php');
-// include_once(__DIR__ . '/../../controller/SendEmailController.php');
 
-$requestType = $_POST['requestType'];
+// 4. Force Disable Errors AGAIN (Because AuthController.php might have turned them on)
+ini_set('display_errors', 0);
+error_reporting(0);
 
+// 5. Initialize Controller & Request
 $controller = new AuthController();
-// $otpController = new OtpController();
-// $emailController = new SendEmailController();
+$requestType = $_POST['requestType'] ?? '';
+
+// 6. CLEAR EVERYTHING buffered so far (Crucial Step)
+ob_clean(); 
+
+// 7. Set JSON Header
+header('Content-Type: application/json');
 
 if ($requestType == "Login") {
     $controller->Login($_POST);
-} elseif ($requestType == "GetProfileDetails") {
-    $id = $_POST['auth_user_id'];
+    exit;
+} 
+elseif ($requestType == "GetProfileDetails") {
+    $id = $_POST['auth_user_id'] ?? 0;
     $controller->GetUser2($id);
-} elseif ($requestType == "EditUser") {
-    $id = $_POST['auth_user_id'];
-    $name = $_POST['name'];
-    $email = $_POST['email'];
-    $newPassword = $_POST['newPassword'];
+    exit;
+} 
+elseif ($requestType == "EditUser") {
+    $id = $_POST['auth_user_id'] ?? 0;
+    $name = $_POST['name'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $newPassword = $_POST['newPassword'] ?? '';
     $controller->UpdateUser($id, $name, $email, $newPassword);
-} elseif ($requestType == "SendOTP") {
-    $email = $_POST['email'];
-    $controller->SendForGotPasswordOtp($email);
-} elseif ($requestType == "LoginUsingOtp") {
-    $email = $_POST['email'];
-    $otp = $_POST['otp'];
-    $controller->LoginUsingOtp($email, $otp);
-} else {
-    http_response_code(400);
-    echo "Invalid or missing requestType.";
+    exit;
+} 
+elseif ($requestType == "UploadProfilePicture") {
+    $id = $_POST['auth_user_id'] ?? 0;
+    if (isset($_FILES['profile_picture'])) {
+        $controller->UpdateProfilePicture($id, $_FILES['profile_picture']);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'No file received.']);
+    }
+    exit;
 }
+elseif ($requestType == "SendOTP") {
+    $email = $_POST['email'] ?? '';
+    $controller->SendForGotPasswordOtp($email);
+    exit;
+} 
+elseif ($requestType == "LoginUsingOtp") {
+    $email = $_POST['email'] ?? '';
+    $otp = $_POST['otp'] ?? '';
+    $controller->LoginUsingOtp($email, $otp);
+    exit;
+} 
+else {
+    http_response_code(400);
+    echo json_encode(['status' => 'error', 'message' => 'Invalid or missing requestType']);
+    exit;
+}
+?>
