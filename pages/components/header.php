@@ -42,6 +42,53 @@ if ($userResult->num_rows > 0) {
 
 <body class="bg-light">
 
+    <div id="global-loader">
+        <div class="loader-content text-center">
+            <div class="spinner-brand"></div>
+            <p class="mt-3 fw-bold text-uppercase" style="color: #a71b1b; letter-spacing: 1px; font-size: 0.9rem;">Loading...</p>
+        </div>
+    </div>
+
+    <style>
+        /* Loader Overlay */
+        #global-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            z-index: 99999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        /* Hidden State */
+        .loader-hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        /* Custom Spinner (Red & Gold) */
+        .spinner-brand {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #a71b1b; /* Main Red */
+            border-right: 5px solid #FFC107; /* Gold */
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
     <nav class="navbar navbar-expand-lg navbar-dark bg-main">
         <div class="container">
             <a class="navbar-brand fw-bold" href="home.php">
@@ -54,9 +101,6 @@ if ($userResult->num_rows > 0) {
 
             <div class="collapse navbar-collapse" id="mainNavbar">
                 <ul class="navbar-nav ms-auto">
-                    <!-- <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="home.php">Home</a>
-                    </li> -->
                     <?php
                     if ($user['role'] == "teacher") {
                     ?>
@@ -87,10 +131,7 @@ if ($userResult->num_rows > 0) {
                         <li class="nav-item">
                             <a class="nav-link active" aria-current="page" href="students.php">Students</a>
                         </li>
-                        <!-- <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="curriculum.php">Curriculum</a>
-                        </li> -->
-                    <?php
+                        <?php
                     }
                     ?>
                     <li class="nav-item dropdown">
