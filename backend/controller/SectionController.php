@@ -1,9 +1,10 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+// Disable error display to prevent text from breaking the HTML layout
+ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
-include(__DIR__ . '/../db/db.php');
+// CRITICAL FIX: Use include_once to prevent "Cannot redeclare class" crash
+include_once(__DIR__ . '/../db/db.php');
 date_default_timezone_set('Asia/Manila');
 
 class SectionController extends db_connect
@@ -13,15 +14,13 @@ class SectionController extends db_connect
         $this->connect();
     }
 
+    // --- For API (JSON response) ---
     public function GetSectionsByTeacher($teacher_id)
     {
         $stmt = $this->conn->prepare("SELECT * FROM sections WHERE teacher_id = ?");
 
         if (!$stmt) {
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'SQL prepare failed: ' . $this->conn->error
-            ]);
+            echo json_encode(['status' => 'error', 'message' => 'SQL prepare failed: ' . $this->conn->error]);
             return;
         }
 
@@ -50,15 +49,26 @@ class SectionController extends db_connect
         $stmt->close();
     }
 
+    // --- For Dropdown (Returns MySQL Object) ---
+    public function GetSectionsResult($teacher_id = null)
+    {
+        if ($teacher_id) {
+            $stmt = $this->conn->prepare("SELECT * FROM sections WHERE teacher_id = ?");
+            $stmt->bind_param("i", $teacher_id);
+            $stmt->execute();
+            return $stmt->get_result();
+        } else {
+            // Super Admin gets ALL sections
+            return $this->conn->query("SELECT * FROM sections");
+        }
+    }
+
     public function AssignSectionToTeacher($teacher_id, $section_name)
     {
         $stmt = $this->conn->prepare("INSERT INTO sections (teacher_id, section_name) VALUES (?, ?)");
 
         if (!$stmt) {
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'SQL prepare failed: ' . $this->conn->error
-            ]);
+            echo json_encode(['status' => 'error', 'message' => 'SQL prepare failed']);
             return;
         }
 
@@ -73,7 +83,7 @@ class SectionController extends db_connect
         } else {
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Insert failed: ' . $stmt->error. ' '.$teacher_id
+                'message' => 'Insert failed: ' . $stmt->error
             ]);
         }
 

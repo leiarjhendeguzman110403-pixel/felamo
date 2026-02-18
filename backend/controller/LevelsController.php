@@ -43,6 +43,28 @@ class LevelsController extends db_connect
                 $levels[] = $row;
             }
 
+            // --- FIX START: Auto-generate levels if they don't exist ---
+            if (empty($levels)) {
+                $insertStmt = $this->conn->prepare("INSERT INTO levels (teacher_id, level) VALUES (?, ?)");
+                
+                if ($insertStmt) {
+                    // Create levels 1 to 4 (Unang Markahan to Ika-apat)
+                    for ($i = 1; $i <= 4; $i++) {
+                        $insertStmt->bind_param("ii", $teacher_id, $i);
+                        $insertStmt->execute();
+                    }
+                    $insertStmt->close();
+
+                    // Re-execute the query to fetch the newly created levels
+                    $q->execute();
+                    $result = $q->get_result();
+                    while ($row = $result->fetch_assoc()) {
+                        $levels[] = $row;
+                    }
+                }
+            }
+            // --- FIX END ---
+
             echo json_encode([
                 'status' => 'success',
                 'message' => 'success',

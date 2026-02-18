@@ -1,16 +1,23 @@
 <?php
 include("components/header.php");
 
+// CRITICAL FIX: Include safely
+include_once("../backend/controller/SectionController.php");
+
 $isSuperAdmin = isset($user['role']) && $user['role'] === 'super_admin';
 
-// FIX: Wrap database call in Try-Catch to prevent page crash (White Screen)
+// Initialize Controller
 $sections = null;
 try {
-    if (isset($AuthController) && method_exists($AuthController, 'GetAllSections')) {
-        $sections = $AuthController->GetAllSections();
+    if (class_exists('SectionController')) {
+        $sectionController = new SectionController();
+        if ($isSuperAdmin) {
+            $sections = $sectionController->GetSectionsResult(null);
+        } else {
+            $sections = $sectionController->GetSectionsResult($auth_user_id);
+        }
     }
 } catch (Exception $e) {
-    // If error occurs, keep $sections null so page continues loading
     error_log("Error fetching sections: " . $e->getMessage());
 }
 ?>
@@ -19,7 +26,7 @@ try {
 <input type="hidden" id="hidden_is_super_admin" value="<?= $isSuperAdmin ? 'true' : 'false' ?>">
 
 <style>
-    /* --- UNIFIED CSS --- */
+    /* --- UNIFIED CSS (Restored from your file) --- */
     /* CRITICAL: This hides the header.php navbar to prevent "Ruined" layout */
     .navbar { display: none !important; }
     
@@ -60,8 +67,7 @@ try {
                 <select name="section_id" id="sectionDropdown" class="form-select header-select">
                     <option value="">ALL SECTIONS</option>
                     <?php 
-                    // FIX: Robust check for object validity and row count
-                    if ($sections && is_object($sections) && property_exists($sections, 'num_rows') && $sections->num_rows > 0): 
+                    if ($sections && $sections->num_rows > 0): 
                         while ($section = $sections->fetch_assoc()): 
                     ?>
                         <option value="<?= htmlspecialchars($section['id']) ?>" data-name="<?= htmlspecialchars($section['section_name']) ?>">
@@ -72,7 +78,7 @@ try {
                     endif; 
                     ?>
                 </select>
-            </div>
+                </div>
         </div>
 
         <div class="card shadow-sm rounded-3">
