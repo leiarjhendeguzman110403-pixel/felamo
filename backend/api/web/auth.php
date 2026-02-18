@@ -3,13 +3,13 @@
 ini_set('display_errors', 0);
 error_reporting(0);
 
-// 2. Start Output Buffering (Catches any accidental whitespace)
+// 2. Start Output Buffering
 ob_start();
 
 // 3. Include Controller
 include_once(__DIR__ . '/../../controller/AuthController.php');
 
-// 4. Force Disable Errors AGAIN (Because AuthController.php might have turned them on)
+// 4. Force Disable Errors AGAIN
 ini_set('display_errors', 0);
 error_reporting(0);
 
@@ -65,4 +65,4 @@ else {
     echo json_encode(['status' => 'error', 'message' => 'Invalid or missing requestType']);
     exit;
 }
-?>
+// DO NOT ADD CLOSING PHP TAG HERE

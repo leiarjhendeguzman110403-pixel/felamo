@@ -1,5 +1,5 @@
 <?php 
-// 1. Include the global header (starts session, loads user data)
+// 1. Include the global header
 include("components/header.php"); 
 
 // 2. Define role and user variables safely
@@ -10,14 +10,14 @@ $currentUserId = isset($user['id']) ? $user['id'] : (isset($auth_user_id) ? $aut
 <input type="hidden" id="hidden_user_id" value="<?= $currentUserId ?>">
 
 <style>
-    /* --- SHARED CSS (Matches Home.php) --- */
+    /* --- KEEPING YOUR EXACT DESIGN --- */
     
     /* 1. Page & Layout Reset */
     .navbar, header, .main-header { display: none !important; }
     body { background-color: #f4f6f9; overflow-x: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .dashboard-wrapper { display: flex; min-height: 100vh; width: 100%; overflow-x: hidden; position: relative; }
 
-    /* 2. SIDEBAR STYLING (Copied from Home.php) */
+    /* 2. SIDEBAR STYLING */
     .sidebar { 
         width: 280px; 
         background: linear-gradient(180deg, #a71b1b 0%, #880f0b 100%); 
@@ -45,7 +45,7 @@ $currentUserId = isset($user['id']) ? $user['id'] : (isset($auth_user_id) ? $aut
     .nav-link-custom.active { background-color: #FFC107; color: #440101; }
     .nav-link-custom i { margin-right: 15px; font-size: 1.2rem; }
 
-    /* Sidebar Buttons (Logout & Toggle) */
+    /* Sidebar Buttons */
     .logout-btn { margin-top: auto; background-color: #FFC107; color: black; font-weight: bold; border: none; width: 100%; padding: 12px; border-radius: 25px; text-align: center; text-decoration: none; cursor: pointer; }
     .logout-btn:hover { background-color: #e0a800; color: black; }
 
@@ -61,7 +61,7 @@ $currentUserId = isset($user['id']) ? $user['id'] : (isset($auth_user_id) ? $aut
     /* 3. MAIN CONTENT STYLING */
     .main-content { 
         flex: 1; 
-        margin-left: 280px; /* Pushes content right */
+        margin-left: 280px; 
         padding: 30px 40px; 
         transition: all 0.3s ease; 
         width: calc(100% - 280px);
@@ -135,8 +135,8 @@ $currentUserId = isset($user['id']) ? $user['id'] : (isset($auth_user_id) ? $aut
     /* Mobile Responsive */
     @media (max-width: 768px) { 
         .main-content { margin-left: 0; width: 100%; padding: 20px; }
-        .dashboard-wrapper.toggled .sidebar { left: 0; } /* Show sidebar when toggled on mobile */
-        .sidebar { left: -280px; } /* Hide by default on mobile */
+        .dashboard-wrapper.toggled .sidebar { left: 0; } 
+        .sidebar { left: -280px; } 
         .sidebar-toggle { right: -30px; }
     }
 </style>
@@ -152,34 +152,35 @@ $currentUserId = isset($user['id']) ? $user['id'] : (isset($auth_user_id) ? $aut
 
         <div class="profile-card">
             <div class="section-title">
-                <i class="bi bi-pencil-square"></i> Edit Account Details
+                <i class="bi bi-camera-fill"></i> Profile Picture
             </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-12 text-center">
+                    <div class="position-relative d-inline-block">
+                        <img id="profilePreview" 
+                             src="../<?= isset($user['profile_picture']) && !empty($user['profile_picture']) ? htmlspecialchars($user['profile_picture']) : 'assets/img/lei.png' ?>?v=<?= time() ?>" 
+                             class="rounded-circle img-thumbnail" 
+                             style="width: 150px; height: 150px; object-fit: cover;">
+                        
+                        <label for="profileUpload" class="btn btn-sm btn-warning position-absolute bottom-0 end-0 rounded-circle" style="padding: 5px 8px; cursor: pointer;">
+                            <i class="bi bi-camera"></i>
+                        </label>
+                        <input type="file" id="profileUpload" style="display:none;" accept="image/*">
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Click the camera icon to change your photo</small>
+                    </div>
+                    <button type="button" id="btnSavePhoto" class="btn btn-sm btn-primary mt-2" style="display:none;">
+                        <i class="bi bi-cloud-upload"></i> Upload Photo
+                    </button>
+                </div>
+            </div>
+            <hr class="my-4" style="opacity: 0.1;">
 
             <div class="section-title">
-    <i class="bi bi-camera-fill"></i> Profile Picture
-</div>
-<div class="row mb-4">
-    <div class="col-md-12 text-center">
-        <div class="position-relative d-inline-block">
-            <img id="profilePreview" 
-                 src="../<?= isset($user['profile_picture']) && !empty($user['profile_picture']) ? htmlspecialchars($user['profile_picture']) : 'assets/img/lei.png' ?>" 
-                 class="rounded-circle img-thumbnail" 
-                 style="width: 150px; height: 150px; object-fit: cover;">
-            
-            <label for="profileUpload" class="btn btn-sm btn-warning position-absolute bottom-0 end-0 rounded-circle" style="padding: 5px 8px;">
-                <i class="bi bi-camera"></i>
-            </label>
-            <input type="file" id="profileUpload" style="display:none;" accept="image/*">
-        </div>
-        <div class="mt-2">
-            <small class="text-muted">Click the camera icon to change your photo</small>
-        </div>
-        <button type="button" id="btnSavePhoto" class="btn btn-sm btn-primary mt-2" style="display:none;">
-            <i class="bi bi-cloud-upload"></i> Upload Photo
-        </button>
-    </div>
-</div>
-<hr class="my-4" style="opacity: 0.1;">
+                <i class="bi bi-pencil-square"></i> Edit Account Details
+            </div>
 
             <form id="editUserForm">
                 <div class="row">
@@ -259,48 +260,54 @@ $currentUserId = isset($user['id']) ? $user['id'] : (isset($auth_user_id) ? $aut
 
         $("#btnSavePhoto").on('click', function() {
             if (!selectedFile) return;
+            const btn = $(this);
+
             const formData = new FormData();
             formData.append('requestType', 'UploadProfilePicture');
             formData.append('auth_user_id', $("#hidden_user_id").val());
             formData.append('profile_picture', selectedFile);
 
-            const btn = $(this);
-            const originalText = btn.html();
-            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Uploading...');
+            // MODAL LOADING (Just like you asked)
+            Swal.fire({
+                title: 'Uploading...',
+                text: 'Please wait...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
 
             $.ajax({
                 url: '../backend/api/web/auth.php',
                 type: 'POST',
                 data: formData,
-                contentType: false, processData: false, dataType: 'text', // Read as text first
+                contentType: false, 
+                processData: false, 
+                dataType: 'text', 
                 success: function(responseText) {
-                    btn.prop('disabled', false).html(originalText);
                     try {
-                        const response = JSON.parse(responseText);
+                        const response = JSON.parse(responseText.trim());
                         if (response.status === 'success') {
-                            Swal.fire({ title: 'Success!', text: 'Profile picture updated.', icon: 'success', confirmButtonColor: '#a71b1b' }).then(() => location.reload());
+                            Swal.fire({ title: 'Success!', text: 'Photo updated.', icon: 'success', confirmButtonColor: '#a71b1b' }).then(() => location.reload());
                         } else {
                             Swal.fire('Error', response.message || 'Upload failed.', 'error');
                         }
                     } catch (e) {
-                        console.error("Server Raw Response:", responseText);
-                        Swal.fire('Server Error', 'The server response was invalid. Check console for details.', 'error');
+                        Swal.fire('Server Error', 'Invalid response from server.', 'error');
                     }
                 },
                 error: function(xhr) {
-                    btn.prop('disabled', false).html(originalText);
                     Swal.fire('Network Error', 'Could not connect to server.', 'error');
                 }
             });
         });
 
-        // --- 3. PROFILE DETAILS UPDATE (FIXED) ---
-        // --- 3. PROFILE DETAILS UPDATE (Guaranteed Fix) ---
+        // --- 3. PROFILE DETAILS UPDATE ---
         $("#editUserForm").on('submit', function(e) {
             e.preventDefault();
             
-            const btn = $("#btnUpdate");
-            const originalText = '<i class="bi bi-save me-2"></i> Save Changes'; // Hardcoded to ensure icon stays
+            // WE DO NOT TOUCH THE BUTTON TEXT ANYMORE.
+            // NO LOADING SCREEN ON BUTTON.
             
             const userId = $("#hidden_user_id").val();
             const name = $("#name").val().trim();
@@ -326,23 +333,28 @@ $currentUserId = isset($user['id']) ? $user['id'] : (isset($auth_user_id) ? $aut
                 newPassword: p1
             };
 
-            // 1. Disable Button
-            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Updating...');
+            // MODAL LOADING (This replaces the button loading)
+            Swal.fire({
+                title: 'Updating...',
+                text: 'Saving your details...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
 
             $.ajax({
                 url: '../backend/api/web/auth.php', 
                 type: 'POST',
                 data: dataToSend,
-                dataType: 'text', // Read as text first to avoid JSON crash
+                dataType: 'text', // SAFE MODE to prevent crash
                 
-                // 2. SUCCESS: Handle logic
                 success: function(responseText) {
                     try {
-                        // Clean up response if there are extra spaces
-                        const cleanResponse = responseText.trim();
-                        const response = JSON.parse(cleanResponse);
+                        const response = JSON.parse(responseText.trim());
 
                         if (response.status === 'success') {
+                            // Success Modal replaces Loading Modal
                             Swal.fire({
                                 title: 'Success!',
                                 text: response.message || 'Profile updated successfully.',
@@ -355,29 +367,20 @@ $currentUserId = isset($user['id']) ? $user['id'] : (isset($auth_user_id) ? $aut
                             Swal.fire('Error', response.message || 'Failed to update profile.', 'error');
                         }
                     } catch (e) {
-                        console.error("JSON Error:", e);
-                        console.log("Server Response:", responseText);
-                        // Even if JSON fails, if the data updated, let's treat it as success or show raw text
                         if(responseText.includes("success")) {
                              Swal.fire({ title: 'Success!', text: 'Profile updated.', icon: 'success', confirmButtonColor: '#a71b1b' }).then(() => location.reload());
                         } else {
-                             Swal.fire('Server Error', 'Response could not be read. Check console.', 'error');
+                             console.error("Server Response:", responseText);
+                             Swal.fire('Server Error', 'Response could not be read.', 'error');
                         }
                     }
                 },
-
-                // 3. ERROR: Network issues
-                error: function(xhr, status, error) {
-                    console.error("AJAX Error:", xhr.responseText);
+                error: function(xhr) {
                     Swal.fire('Network Error', 'Could not connect to server.', 'error');
-                },
-
-                // 4. COMPLETE: THIS RUNS NO MATTER WHAT (Fixes the loading issue)
-                complete: function() {
-                    btn.prop('disabled', false).html(originalText);
                 }
             });
         });
+    });
 </script>
 
 <?php include("components/footer.php"); ?>
