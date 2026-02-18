@@ -1,22 +1,45 @@
 <?php
 include("components/header.php");
 
-// ... (Keep existing PHP logic) ...
-if (isset($_GET['sectionId'])) {
-    $sectionId = $_GET['sectionId'];
-    $sectionResult = $AuthController->GetUsingId('sections', $sectionId);
-    if ($sectionResult->num_rows > 0) {
-        $section = $sectionResult->fetch_assoc();
-    } else { header("Location: ../index.php"); exit; }
-} else { header("Location: ../index.php"); exit; }
+// FIX: Initialize variables safely
+$sectionId = isset($_GET['sectionId']) ? $_GET['sectionId'] : null;
+$section = [];
+
+if ($sectionId) {
+    try {
+        // SAFETY CHECK: Ensure AuthController exists and method exists
+        if (isset($AuthController) && method_exists($AuthController, 'GetUsingId')) {
+            $sectionResult = $AuthController->GetUsingId('sections', $sectionId);
+            
+            // CHECK: Ensure we got a valid object back, not false/null
+            if ($sectionResult && is_object($sectionResult) && $sectionResult->num_rows > 0) {
+                $section = $sectionResult->fetch_assoc();
+            } else {
+                // Section not found - Redirect safely using JS
+                echo "<script>window.location.href='../index.php';</script>";
+                exit;
+            }
+        }
+    } catch (Exception $e) {
+        // If error occurs, prevent crash and redirect
+        echo "<script>window.location.href='../index.php';</script>";
+        exit;
+    }
+} else {
+    // No ID provided
+    echo "<script>window.location.href='../index.php';</script>";
+    exit;
+}
 ?>
 
-<input type="hidden" id="hidden_section_id" value="<?= $sectionId ?>">
-<input type="hidden" id="hidden_user_id" value="<?= $auth_user_id ?>">
+<input type="hidden" id="hidden_section_id" value="<?= htmlspecialchars($sectionId) ?>">
+<input type="hidden" id="hidden_user_id" value="<?= isset($auth_user_id) ? $auth_user_id : '' ?>">
 
 <style>
     /* --- RESET & LAYOUT --- */
+    /* CRITICAL: Hides the header.php navbar so the layout isn't 'ruined' */
     nav.navbar { display: none !important; } 
+    
     body { background-color: #f4f6f9; overflow-x: hidden; }
     .dashboard-wrapper { display: flex; width: 100%; min-height: 100vh; overflow-x: hidden; }
     .main-content { flex: 1; margin-left: 280px; padding: 30px 40px; background-color: #f8f9fa; transition: margin-left 0.3s ease-in-out; }
@@ -36,17 +59,16 @@ if (isset($_GET['sectionId'])) {
     .page-header-banner {
         background: linear-gradient(90deg, #a71b1b 0%, #880f0b 100%);
         color: white; 
-        padding: 0 30px; /* Adjusted padding */
+        padding: 0 30px; 
         border-radius: 8px; 
         margin-bottom: 25px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
         
-        /* Flex & Height Fix */
         display: flex; 
         align-items: center; 
         justify-content: space-between;
-        height: 80px;      /* Force Height */
-        min-height: 80px;  /* Minimum Height */
+        height: 80px;      
+        min-height: 80px;  
     }
     
     .page-header-banner h4 {
@@ -111,7 +133,7 @@ if (isset($_GET['sectionId'])) {
                     BACK
                 </a>
                 <h4 class="m-0 fw-bold text-uppercase">
-                    Students of Section <?= htmlspecialchars($section['section_name']) ?>
+                    Students of Section <?= isset($section['section_name']) ? htmlspecialchars($section['section_name']) : 'Unknown' ?>
                 </h4>
             </div>
 
@@ -160,6 +182,7 @@ if (isset($_GET['sectionId'])) {
 
 <script>
     $(document).ready(function() {
+        // Fix Sidebar Toggle
         $(document).off('click', '.sidebar-toggle');
         $(document).on('click', '.sidebar-toggle', function(e) {
             e.preventDefault(); e.stopPropagation(); 
@@ -177,34 +200,41 @@ if (isset($_GET['sectionId'])) {
                 url: "../backend/api/web/student_teacher_assignment.php",
                 data: {
                     requestType: "GetAssignedStudents",
-                    section_id
+                    section_id: section_id // Fixed missing colon if strict mode
                 },
                 success: function(response) {
-                    let res = typeof response === 'string' ? JSON.parse(response) : response;
-                    
-                    if (res.status === "success") {
-                        let rows = "";
-                        if(res.data.length === 0) {
-                             rows = `<tr><td colspan="8" class="text-center py-4 text-muted">No students found in this section.</td></tr>`;
+                    try {
+                        let res = typeof response === 'string' ? JSON.parse(response) : response;
+                        
+                        if (res.status === "success") {
+                            let rows = "";
+                            if(!res.data || res.data.length === 0) {
+                                 rows = `<tr><td colspan="8" class="text-center py-4 text-muted">No students found in this section.</td></tr>`;
+                            } else {
+                                res.data.forEach((student) => {
+                                    rows += `
+                                    <tr>
+                                        <td class="fw-bold text-main">${student.student_lrn || ""}</td>
+                                        <td>${student.first_name || ""}</td>
+                                        <td>${student.middle_name || ""}</td>
+                                        <td>${student.last_name || ""}</td>
+                                        <td>${student.birth_date || "N/A"}</td>
+                                        <td>${student.gender || "N/A"}</td>
+                                        <td>${student.student_email || "N/A"}</td>
+                                        <td>${student.contact_no || "N/A"}</td>
+                                    </tr>`;
+                                });
+                            }
+                            $("#student-table-tbody").html(rows);
                         } else {
-                            res.data.forEach((student) => {
-                                rows += `
-                                <tr>
-                                    <td class="fw-bold text-main">${student.student_lrn}</td>
-                                    <td>${student.first_name ?? ""}</td>
-                                    <td>${student.middle_name ?? ""}</td>
-                                    <td>${student.last_name ?? ""}</td>
-                                    <td>${student.birth_date ?? "N/A"}</td>
-                                    <td>${student.gender ?? "N/A"}</td>
-                                    <td>${student.student_email ?? "N/A"}</td>
-                                    <td>${student.contact_no ?? "N/A"}</td>
-                                </tr>`;
-                            });
+                            $("#student-table-tbody").html(`
+                                <tr><td colspan="8" class="text-center text-danger py-4">Failed to load students: ${res.message || "Unknown error"}</td></tr>
+                            `);
                         }
-                        $("#student-table-tbody").html(rows);
-                    } else {
+                    } catch (e) {
+                        console.error(e);
                         $("#student-table-tbody").html(`
-                            <tr><td colspan="8" class="text-center text-danger py-4">Failed to load students</td></tr>
+                            <tr><td colspan="8" class="text-center text-danger py-4">Error parsing data</td></tr>
                         `);
                     }
                 },
@@ -225,31 +255,37 @@ if (isset($_GET['sectionId'])) {
                     teacher_id: teacher_id
                 },
                 success: function(response) {
-                    let res = typeof response === 'string' ? JSON.parse(response) : response;
-                    let listHtml = "";
+                    try {
+                        let res = typeof response === 'string' ? JSON.parse(response) : response;
+                        let listHtml = "";
 
-                    if (res.status === "success" && res.data.length > 0) {
-                        res.data.forEach((sec) => {
-                            let isActive = (sec.id == section_id) ? "active bg-light text-dark fw-bold border-start border-4 border-danger" : "";
-                            let pointer = (sec.id == section_id) ? "none" : "auto";
-                            
-                            listHtml += `
-                                <li>
-                                    <a class="dropdown-item ${isActive}" href="section_students.php?sectionId=${sec.id}" style="pointer-events:${pointer}">
-                                        ${sec.section_name}
-                                    </a>
-                                </li>`;
-                        });
-                    } else {
-                        listHtml = `<li><span class="dropdown-item-text">No other sections found.</span></li>`;
+                        if (res.status === "success" && res.data && res.data.length > 0) {
+                            res.data.forEach((sec) => {
+                                let isActive = (sec.id == section_id) ? "active bg-light text-dark fw-bold border-start border-4 border-danger" : "";
+                                let pointer = (sec.id == section_id) ? "none" : "auto";
+                                
+                                listHtml += `
+                                    <li>
+                                        <a class="dropdown-item ${isActive}" href="section_students.php?sectionId=${sec.id}" style="pointer-events:${pointer}">
+                                            ${sec.section_name}
+                                        </a>
+                                    </li>`;
+                            });
+                        } else {
+                            listHtml = `<li><span class="dropdown-item-text">No other sections found.</span></li>`;
+                        }
+                        $("#sections-dropdown-list").html(listHtml);
+                    } catch(e) {
+                         $("#sections-dropdown-list").html(`<li><span class="dropdown-item-text text-danger">Error loading sections</span></li>`);
                     }
-                    $("#sections-dropdown-list").html(listHtml);
                 }
             });
         };
 
-        loadAssignedStudents();
-        loadSectionDropdown();
+        if(section_id) {
+            loadAssignedStudents();
+            loadSectionDropdown();
+        }
     });
 </script>
 

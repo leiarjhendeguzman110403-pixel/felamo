@@ -1,14 +1,25 @@
 <?php
 include("components/header.php");
-// Fetch sections for the dropdown
-$sections = $AuthController->GetSections($auth_user_id);
+
+// FIX: Wrap database call in Try-Catch to ensure layout renders even if DB fails
+$sections = null;
+try {
+    if (isset($AuthController) && method_exists($AuthController, 'GetSections')) {
+        $sections = $AuthController->GetSections($auth_user_id);
+    }
+} catch (Exception $e) {
+    // If error, ignore and continue page load
+    $sections = false;
+}
 ?>
 
-<input type="hidden" id="hidden_user_id" value="<?= $auth_user_id ?>">
+<input type="hidden" id="hidden_user_id" value="<?= isset($auth_user_id) ? $auth_user_id : '' ?>">
 
 <style>
     /* --- RESET & LAYOUT --- */
+    /* CRITICAL: Hides the first navbar to avoid ruined layout */
     nav.navbar { display: none !important; } 
+    
     body { background-color: #f4f6f9; overflow-x: hidden; }
     .dashboard-wrapper { display: flex; width: 100%; min-height: 100vh; overflow-x: hidden; }
     .main-content { flex: 1; margin-left: 280px; padding: 30px 40px; background-color: #f8f9fa; transition: margin-left 0.3s ease-in-out; }
@@ -160,8 +171,10 @@ $sections = $AuthController->GetSections($auth_user_id);
                         <select name="section" id="notifSection" class="form-select py-2" required>
                             <option value="" selected disabled>Select a section...</option>
                             <?php 
-                            if ($sections && $sections->num_rows > 0) {
-                                $sections->data_seek(0); // Reset pointer
+                            // FIX: Strict check for valid MySQLi result object to prevent crashes
+                            if ($sections && is_object($sections) && property_exists($sections, 'num_rows') && $sections->num_rows > 0) {
+                                // Safely reset pointer
+                                $sections->data_seek(0); 
                                 while ($section = $sections->fetch_assoc()): 
                             ?>
                                 <option value="<?= htmlspecialchars($section['id']) ?>">

@@ -1,36 +1,45 @@
 <?php 
 include("components/header.php"); 
 
-if (isset($_GET['level'])) {
-    $level_id = $_GET['level'];
-    $levelResult = $AuthController->GetUsingId("levels", $level_id);
-    if ($levelResult && $levelResult->num_rows > 0) {
-        $level = $levelResult->fetch_assoc();
+$level_id = isset($_GET['level']) ? $_GET['level'] : null;
+$levelText = "Unknown"; // Default value
 
-        // --- ADDED: Number to Word Mapping ---
-        $levelNum = $level['level'];
-        $ordinalMap = [
-            1 => "Unang",
-            2 => "Ikalawang",
-            3 => "Ikatlong",
-            4 => "Ika-apat" // Mapped exactly as requested
-        ];
-        // Default to the number if not in map
-        $levelText = isset($ordinalMap[$levelNum]) ? $ordinalMap[$levelNum] : $levelNum;
-        // -------------------------------------
+if ($level_id) {
+    try {
+        if (isset($AuthController) && method_exists($AuthController, 'GetUsingId')) {
+            $levelResult = $AuthController->GetUsingId("levels", $level_id);
+            
+            // Check if result is valid object
+            if ($levelResult && is_object($levelResult) && $levelResult->num_rows > 0) {
+                $level = $levelResult->fetch_assoc();
 
-    } else {
-        header("Location: levels.php");
+                // --- ADDED: Number to Word Mapping ---
+                $levelNum = $level['level'];
+                $ordinalMap = [
+                    1 => "Unang",
+                    2 => "Ikalawang",
+                    3 => "Ikatlong",
+                    4 => "Ika-apat" 
+                ];
+                $levelText = isset($ordinalMap[$levelNum]) ? $ordinalMap[$levelNum] : $levelNum;
+            } else {
+                echo "<script>window.location.href='levels.php';</script>";
+                exit();
+            }
+        }
+    } catch (Exception $e) {
+        // Prevent crash on DB error
+        echo "<script>window.location.href='levels.php';</script>";
         exit();
     }
 } else {
-    header("Location: levels.php");
+    echo "<script>window.location.href='levels.php';</script>";
     exit();
 }
 ?>
 
-<input type="hidden" id="hidden_user_id" value="<?= $auth_user_id ?>">
-<input type="hidden" id="hidden_level_id" value="<?= $level_id ?>">
+<input type="hidden" id="hidden_user_id" value="<?= isset($auth_user_id) ? $auth_user_id : '' ?>">
+<input type="hidden" id="hidden_level_id" value="<?= htmlspecialchars($level_id) ?>">
 
 <style>
     /* --- LAYOUT & RESET --- */

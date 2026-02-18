@@ -1,16 +1,28 @@
 <?php
 include("components/header.php");
 
-$isSuperAdmin = $user['role'] === 'super_admin';
-$sections = $AuthController->GetAllSections();
+$isSuperAdmin = isset($user['role']) && $user['role'] === 'super_admin';
+
+// FIX: Wrap database call in Try-Catch to prevent page crash (White Screen)
+$sections = null;
+try {
+    if (isset($AuthController) && method_exists($AuthController, 'GetAllSections')) {
+        $sections = $AuthController->GetAllSections();
+    }
+} catch (Exception $e) {
+    // If error occurs, keep $sections null so page continues loading
+    error_log("Error fetching sections: " . $e->getMessage());
+}
 ?>
 
-<input type="hidden" id="hidden_user_id" value="<?= $auth_user_id ?>">
+<input type="hidden" id="hidden_user_id" value="<?= isset($auth_user_id) ? $auth_user_id : '' ?>">
 <input type="hidden" id="hidden_is_super_admin" value="<?= $isSuperAdmin ? 'true' : 'false' ?>">
 
 <style>
     /* --- UNIFIED CSS --- */
+    /* CRITICAL: This hides the header.php navbar to prevent "Ruined" layout */
     .navbar { display: none !important; }
+    
     body { background-color: #f4f6f9; overflow-x: hidden; }
     .dashboard-wrapper { display: flex; min-height: 100vh; width: 100%; overflow-x: hidden; }
 
@@ -47,9 +59,18 @@ $sections = $AuthController->GetAllSections();
             <div>
                 <select name="section_id" id="sectionDropdown" class="form-select header-select">
                     <option value="">ALL SECTIONS</option>
-                    <?php while ($section = $sections->fetch_assoc()): ?>
-                        <option value="<?= htmlspecialchars($section['id']) ?>" data-name="<?= htmlspecialchars($section['section_name']) ?>"><?= htmlspecialchars($section['section_name']) ?></option>
-                    <?php endwhile; ?>
+                    <?php 
+                    // FIX: Robust check for object validity and row count
+                    if ($sections && is_object($sections) && property_exists($sections, 'num_rows') && $sections->num_rows > 0): 
+                        while ($section = $sections->fetch_assoc()): 
+                    ?>
+                        <option value="<?= htmlspecialchars($section['id']) ?>" data-name="<?= htmlspecialchars($section['section_name']) ?>">
+                            <?= htmlspecialchars($section['section_name']) ?>
+                        </option>
+                    <?php 
+                        endwhile; 
+                    endif; 
+                    ?>
                 </select>
             </div>
         </div>
@@ -111,7 +132,7 @@ $sections = $AuthController->GetAllSections();
         const auth_user_id = $("#hidden_user_id").val();
         const is_super_admin = $("#hidden_is_super_admin").val(); 
 
-        // 2. Load Student Logic (RESTORED)
+        // 2. Load Student Logic
         const loadStudent = (section_id) => {
              $.ajax({
                 type: "POST", 
@@ -124,7 +145,6 @@ $sections = $AuthController->GetAllSections();
                 },
                 success: function(response) {
                     try {
-                        // Ensure response is JSON
                         let res = typeof response === 'string' ? JSON.parse(response) : response;
                         
                         if (res.status === "success") {
@@ -134,7 +154,6 @@ $sections = $AuthController->GetAllSections();
 
                             if(students.length > 0) {
                                 students.forEach((student) => {
-                                    // Handle nulls safely
                                     const fname = student.first_name || "";
                                     const mname = student.middle_name || "";
                                     const lname = student.last_name || "";
@@ -226,7 +245,6 @@ $sections = $AuthController->GetAllSections();
             });
         });
 
-        // Initial Load
         loadStudent("");
     });
 </script>

@@ -2,37 +2,50 @@
 include("components/header.php"); 
 
 // Authorization and Validation
-if (isset($_GET['level'])) {
-    $level_id = $_GET['level'];
-    $levelResult = $AuthController->GetUsingId("levels", $level_id);
+$level_id = isset($_GET['level']) ? $_GET['level'] : null;
+$levelText = "Unknown"; // Default
 
-    if ($levelResult->num_rows > 0) {
-        $level = $levelResult->fetch_assoc();
+if ($level_id) {
+    try {
+        if (isset($AuthController) && method_exists($AuthController, 'GetUsingId')) {
+            $levelResult = $AuthController->GetUsingId("levels", $level_id);
 
-        // --- Number to Word Mapping ---
-        $levelNum = $level['level'];
-        $ordinalMap = [
-            1 => "Unang",
-            2 => "Ikalawang",
-            3 => "Ikatlong",
-            4 => "Ika-apat na" 
-        ];
-        $levelText = isset($ordinalMap[$levelNum]) ? $ordinalMap[$levelNum] : $levelNum;
+            if ($levelResult && is_object($levelResult) && $levelResult->num_rows > 0) {
+                $level = $levelResult->fetch_assoc();
 
-        if ($level['teacher_id'] != $auth_user_id) {
-            header("Location: ../index.php");
+                // --- Number to Word Mapping ---
+                $levelNum = $level['level'];
+                $ordinalMap = [
+                    1 => "Unang",
+                    2 => "Ikalawang",
+                    3 => "Ikatlong",
+                    4 => "Ika-apat na" 
+                ];
+                $levelText = isset($ordinalMap[$levelNum]) ? $ordinalMap[$levelNum] : $levelNum;
+
+                // Authorization check
+                if ($level['teacher_id'] != $auth_user_id) {
+                    echo "<script>window.location.href='../index.php';</script>";
+                    exit;
+                }
+            } else {
+                 echo "<script>window.location.href='../index.php';</script>";
+                 exit;
+            }
         }
-    } else {
-        header("Location: ../index.php");
+    } catch (Exception $e) {
+        // Log error and redirect safely
+        echo "<script>window.location.href='../index.php';</script>";
+        exit;
     }
 } else {
-    header("Location: ../index.php");
+    echo "<script>window.location.href='../index.php';</script>";
     exit;
 }
 ?>
 
-<input type="hidden" id="hidden_user_id" value="<?= $auth_user_id ?>">
-<input type="hidden" id="hidden_level_id" value="<?= $level_id ?>">
+<input type="hidden" id="hidden_user_id" value="<?= isset($auth_user_id) ? $auth_user_id : '' ?>">
+<input type="hidden" id="hidden_level_id" value="<?= htmlspecialchars($level_id) ?>">
 
 <style>
     /* --- 1. RESET & LAYOUT --- */

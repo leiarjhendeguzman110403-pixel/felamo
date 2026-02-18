@@ -1,28 +1,46 @@
 <?php
 include("components/header.php");
 
-if (isset($_GET['sectionId'])) {
-    $sectionId = $_GET['sectionId'];
-    $sectionResult = $AuthController->GetUsingId('sections', $sectionId);
-    if ($sectionResult->num_rows > 0) {
-        $section = $sectionResult->fetch_assoc();
-    } else {
-        header("Location: ../index.php");
+// FIX: Initialize variables safely
+$sectionId = isset($_GET['sectionId']) ? $_GET['sectionId'] : null;
+$section = [];
+
+if ($sectionId) {
+    try {
+        // SAFETY CHECK: Ensure AuthController exists
+        if (isset($AuthController) && method_exists($AuthController, 'GetUsingId')) {
+            $sectionResult = $AuthController->GetUsingId('sections', $sectionId);
+            
+            // CHECK: Ensure we got a valid object back, not false/null
+            if ($sectionResult && is_object($sectionResult) && $sectionResult->num_rows > 0) {
+                $section = $sectionResult->fetch_assoc();
+            } else {
+                // Section not found - Redirect safely using JS
+                echo "<script>window.location.href='../index.php';</script>";
+                exit;
+            }
+        }
+    } catch (Exception $e) {
+        // If error occurs, prevent crash and redirect
+        echo "<script>window.location.href='../index.php';</script>";
         exit;
     }
 } else {
-    header("Location: ../index.php");
+    // No ID provided
+    echo "<script>window.location.href='../index.php';</script>";
     exit;
 }
-$isSuperAdmin = $user['role'] === 'super_admin';
+
+$isSuperAdmin = isset($user['role']) && $user['role'] === 'super_admin';
 ?>
 
-<input type="hidden" id="hidden_user_id" value="<?= $auth_user_id ?>">
+<input type="hidden" id="hidden_user_id" value="<?= isset($auth_user_id) ? $auth_user_id : '' ?>">
 <input type="hidden" id="hidden_is_super_admin" value="<?= $isSuperAdmin ? 'true' : 'false' ?>">
-<input type="hidden" id="hidden_section_id" value="<?= $sectionId ?>">
+<input type="hidden" id="hidden_section_id" value="<?= htmlspecialchars($sectionId) ?>">
 
 <style>
     /* --- FORCE RESET --- */
+    /* CRITICAL: Hides the header.php navbar so the layout isn't 'ruined' */
     .navbar { display: none !important; }
     body { background-color: #f4f6f9; overflow-x: hidden; }
     
@@ -116,8 +134,8 @@ $isSuperAdmin = $user['role'] === 'super_admin';
     <main class="main-content">
         <div class="page-header shadow-sm">
             <div class="d-flex align-items-center">
-                <a href="javascript:history.back()" class="btn btn-sm btn-light text-main me-3 rounded-circle" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"><i class="bi bi-arrow-left"></i></a>
-                <span><i class="bi bi-people-fill me-2"></i> Students: <?= htmlspecialchars($section['section_name']) ?></span>
+                <a href="my_sections.php" class="btn btn-sm btn-light text-main me-3 rounded-circle" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"><i class="bi bi-arrow-left"></i></a>
+                <span><i class="bi bi-people-fill me-2"></i> Students: <?= isset($section['section_name']) ? htmlspecialchars($section['section_name']) : 'Unknown' ?></span>
             </div>
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-sm btn-light text-main fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#insertStudentModal"><i class="bi bi-person-plus-fill me-1"></i> Insert Student</button>

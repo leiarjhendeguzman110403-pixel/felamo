@@ -1,29 +1,41 @@
 <?php 
 include("components/header.php"); 
 
-if (isset($_GET['level'])) {
-    $level_id = $_GET['level'];
-    $levelResult = $AuthController->GetUsingId("levels", $level_id);
-    if ($levelResult && $levelResult->num_rows > 0) {
-        $levelData = $levelResult->fetch_assoc();
-        
-        // Number to Word Logic
-        $levelNum = $levelData['level'];
-        $ordinalMap = [ 1 => "Unang", 2 => "Ikalawang", 3 => "Ikatlong", 4 => "Ika-apat na" ];
-        $levelText = isset($ordinalMap[$levelNum]) ? $ordinalMap[$levelNum] : $levelNum;
+$level_id = isset($_GET['level']) ? $_GET['level'] : null;
+$levelText = "Unknown"; // Default
 
-    } else {
-        header("Location: levels.php");
+if ($level_id) {
+    try {
+        if (isset($AuthController) && method_exists($AuthController, 'GetUsingId')) {
+            $levelResult = $AuthController->GetUsingId("levels", $level_id);
+            
+            // Check if result is a valid object
+            if ($levelResult && is_object($levelResult) && $levelResult->num_rows > 0) {
+                $levelData = $levelResult->fetch_assoc();
+                
+                // Number to Word Logic
+                $levelNum = $levelData['level'];
+                $ordinalMap = [ 1 => "Unang", 2 => "Ikalawang", 3 => "Ikatlong", 4 => "Ika-apat na" ];
+                $levelText = isset($ordinalMap[$levelNum]) ? $ordinalMap[$levelNum] : $levelNum;
+
+            } else {
+                echo "<script>window.location.href='levels.php';</script>";
+                exit();
+            }
+        }
+    } catch (Exception $e) {
+        // Prevent crash on database error
+        echo "<script>window.location.href='levels.php';</script>";
         exit();
     }
 } else {
-    header("Location: levels.php");
+    echo "<script>window.location.href='levels.php';</script>";
     exit();
 }
 ?>
 
-<input type="hidden" id="hidden_user_id" value="<?= $auth_user_id ?>">
-<input type="hidden" id="hidden_level_id" value="<?= $level_id ?>">
+<input type="hidden" id="hidden_user_id" value="<?= isset($auth_user_id) ? $auth_user_id : '' ?>">
+<input type="hidden" id="hidden_level_id" value="<?= htmlspecialchars($level_id) ?>">
 
 <style>
     /* --- RESET & LAYOUT --- */
