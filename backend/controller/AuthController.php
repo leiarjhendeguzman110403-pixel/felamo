@@ -110,8 +110,20 @@ class AuthController extends db_connect
 
             if ($user && password_verify($password, $user['password'])) {
 
-                session_start();
+                // --- FIX STARTS HERE ---
+                // 1. Make cookie valid for the entire website
+                session_set_cookie_params(0, '/');
+
+                // 2. Start Session
+                if (session_status() === PHP_SESSION_NONE) {
+                    session_start();
+                }
+
                 $_SESSION['id'] = $user['id'];
+
+                // 3. Save session immediately
+                session_write_close();
+                // --- FIX ENDS HERE ---
 
                 echo json_encode([
                     'status' => 'success',
@@ -374,53 +386,50 @@ class AuthController extends db_connect
 
         $stmt = $this->conn->prepare(
             "SELECT id, name, email, role 
-         FROM admin 
-         WHERE email = ? AND is_active = 1"
+             FROM admin 
+             WHERE email = ? AND is_active = 1"
         );
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $user = $stmt->get_result()->fetch_assoc();
 
         if (!$user) {
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Invalid email or inactive account.'
-            ]);
+            echo json_encode(['status' => 'error', 'message' => 'Invalid email or inactive account.']);
             return;
         }
 
         $otpStmt = $this->conn->prepare(
             "SELECT otp 
-         FROM user_otps 
-         WHERE email = ?
-         AND user_type = 'admin'
-         AND otp_type = 'forgot_password'
-         AND expiration_date >= ?
-         ORDER BY expiration_date DESC
-         LIMIT 1"
+             FROM user_otps 
+             WHERE email = ?
+             AND user_type = 'admin'
+             AND otp_type = 'forgot_password'
+             AND expiration_date >= ?
+             ORDER BY expiration_date DESC
+             LIMIT 1"
         );
         $otpStmt->bind_param("ss", $email, $now);
         $otpStmt->execute();
 
         $otpData = $otpStmt->get_result()->fetch_assoc();
         if (!$otpData) {
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'OTP expired or not found.'
-            ]);
+            echo json_encode(['status' => 'error', 'message' => 'OTP expired or not found.']);
             return;
         }
 
         if ($otpData['otp'] != $otp) {
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Incorrect OTP.'
-            ]);
+            echo json_encode(['status' => 'error', 'message' => 'Incorrect OTP.']);
             return;
         }
 
-        session_start();
+        // --- START OF FIX ---
+        session_set_cookie_params(0, '/');
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         $_SESSION['id'] = $user['id'];
+        session_write_close();
+        // --- END OF FIX ---
 
         echo json_encode([
             'status' => 'success',

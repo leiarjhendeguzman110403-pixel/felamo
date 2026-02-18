@@ -12,15 +12,16 @@ $(document).ready(function () {
       url: "backend/api/web/auth.php",
       data: { requestType: "Login", email, password },
       success: function (response) {
-        let res = JSON.parse(response);
+        // FIX 1: Handle response if it's already an object (auto-parsed by jQuery)
+        let res = typeof response === "string" ? JSON.parse(response) : response;
 
         console.log(res);
 
         if (res.status == "error") {
           $("#login-error").removeClass("d-none");
         } else {
-          //redirect
-          window.location.reload();
+          // FIX 2: Explicitly go to home page instead of just reloading
+          window.location.href = "pages/home.php";
         }
       },
     });
@@ -38,7 +39,7 @@ $(document).ready(function () {
       url: "backend/api/web/auth.php",
       data: { requestType: "SendOTP", email },
       success: function (response) {
-        let res = JSON.parse(response);
+        let res = typeof response === "string" ? JSON.parse(response) : response;
 
         if (res.status == "error") {
           $("#forgot-password-error").removeClass("d-none");
@@ -62,12 +63,13 @@ $(document).ready(function () {
       url: "backend/api/web/auth.php",
       data: { requestType: "LoginUsingOtp", email, otp },
       success: function (response) {
-        let res = JSON.parse(response);
+        let res = typeof response === "string" ? JSON.parse(response) : response;
 
         if (res.status == "error") {
           $("#login-using-otp-error").removeClass("d-none");
         } else {
-          window.location.reload();
+          // FIX 3: Explicit redirect here too
+          window.location.href = "pages/home.php";
         }
       },
     });
