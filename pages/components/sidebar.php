@@ -32,6 +32,10 @@ if (!empty($user['profile_picture'])) {
         <a href="home.php" class="nav-link-custom <?= $current_page == 'home.php' ? 'active' : '' ?>">
             <i class="bi bi-house-door-fill"></i> HOME
         </a>
+
+        <a href="leader_boards.php" class="nav-link-custom <?= $current_page == 'leader_boards.php' ? 'active' : '' ?>">
+            <i class="bi bi-trophy-fill"></i> LEADERBOARD
+        </a>
         
         <?php if ($currentUserRole == "teacher") { ?>
             <a href="levels.php" class="nav-link-custom <?= $current_page == 'levels.php' ? 'active' : '' ?>">

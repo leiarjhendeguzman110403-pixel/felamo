@@ -122,7 +122,7 @@ include("header.php");
         </div>
     </form>
 
-    <img src="assets/img/logo (1).png" alt="Logo" class="side-logo">
+    <img src="assets/img/logo (1).png" style="margin-top: 30px; alt="Logo" class="side-logo">
 
 </div>
 
