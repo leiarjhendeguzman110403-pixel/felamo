@@ -99,8 +99,15 @@ $(document).ready(function () {
     loadAralins();
 
     // --- CREATE ARALIN ---
+    // --- CREATE ARALIN ---
     $("#insert-aralin-form").submit(function (e) {
         e.preventDefault();
+        
+        // Change button text to show it's loading
+        let submitBtn = $(this).find('button[type="submit"]');
+        let originalText = submitBtn.text();
+        submitBtn.text("Saving...").prop("disabled", true);
+
         let formData = new FormData(this);
 
         $.ajax({
@@ -110,18 +117,32 @@ $(document).ready(function () {
             contentType: false,
             processData: false,
             success: function (response) {
-                let res = JSON.parse(response);
-                if (res.status === "success") {
-                    alert(res.message);
-                    $("#insertAralinModal").modal("hide");
-                    $("#insert-aralin-form")[0].reset();
-                    loadAralins();
-                } else {
-                    alert(res.message);
+                submitBtn.text(originalText).prop("disabled", false);
+                try {
+                    let res = JSON.parse(response);
+                    if (res.status === "success") {
+                        alert("Lesson successfully saved!");
+                        $("#insertAralinModal").modal("hide");
+                        $("#insert-aralin-form")[0].reset();
+                        loadAralins(); // This reloads the table immediately
+                    } else {
+                        alert("Failed: " + res.message);
+                    }
+                } catch (err) {
+                    console.error("Raw server response:", response);
+                    alert("Server returned invalid data. Press F12 and check the Console tab for the exact PHP error.");
                 }
             },
-            error: function () {
-                alert("An error occurred.");
+            error: function (xhr, status, error) {
+                submitBtn.text(originalText).prop("disabled", false);
+                
+                // Try to parse the error message from the server if it's JSON
+                try {
+                    let res = JSON.parse(xhr.responseText);
+                    alert("Error: " + res.message);
+                } catch(e) {
+                    alert("Server Error (" + xhr.status + "): " + xhr.responseText);
+                }
             },
         });
     });
