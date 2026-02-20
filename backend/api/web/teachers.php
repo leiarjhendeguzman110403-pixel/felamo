@@ -7,9 +7,9 @@ header("Access-Control-Allow-Origin: *");
 
 // 2. DATABASE CONNECTION
 $servername = "localhost";
-$username   = "root";     
-$password   = "";          
-$dbname     = "felamo";
+$username   = "u240756803_felamov3";     
+$password   = "hehcE6-fotcab-viskaj";          
+$dbname     = "u240756803_felamov3";
 
 try {
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);

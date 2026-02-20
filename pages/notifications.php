@@ -1,16 +1,10 @@
 <?php
 include("components/header.php");
+include_once("../backend/controller/SectionController.php");
 
-// FIX: Wrap database call in Try-Catch to ensure layout renders even if DB fails
-$sections = null;
-try {
-    if (isset($AuthController) && method_exists($AuthController, 'GetSections')) {
-        $sections = $AuthController->GetSections($auth_user_id);
-    }
-} catch (Exception $e) {
-    // If error, ignore and continue page load
-    $sections = false;
-}
+$sectionController = new SectionController();
+// Fetch sections for this specific teacher
+$sections = $sectionController->GetSectionsResult($auth_user_id);
 ?>
 
 <input type="hidden" id="hidden_user_id" value="<?= isset($auth_user_id) ? $auth_user_id : '' ?>">
@@ -169,22 +163,19 @@ try {
                             <i class="bi bi-diagram-3 me-1"></i>Section
                         </label>
                         <select name="section" id="notifSection" class="form-select py-2" required>
-                            <option value="" selected disabled>Select a section...</option>
-                            <?php 
-                            // FIX: Strict check for valid MySQLi result object to prevent crashes
-                            if ($sections && is_object($sections) && property_exists($sections, 'num_rows') && $sections->num_rows > 0) {
-                                // Safely reset pointer
-                                $sections->data_seek(0); 
-                                while ($section = $sections->fetch_assoc()): 
-                            ?>
-                                <option value="<?= htmlspecialchars($section['id']) ?>">
-                                    <?= htmlspecialchars($section['section_name']) ?>
-                                </option>
-                            <?php 
-                                endwhile; 
-                            }
-                            ?>
-                        </select>
+    <option value="" selected disabled>Select a section...</option>
+    <?php 
+    if ($sections && $sections->num_rows > 0) {
+        while ($section = $sections->fetch_assoc()): 
+    ?>
+        <option value="<?= htmlspecialchars($section['id']) ?>">
+            <?= htmlspecialchars($section['section_name']) ?>
+        </option>
+    <?php 
+        endwhile; 
+    }
+    ?>
+</select>
                     </div>
                     <div class="mb-3">
                         <label for="notifTitle" class="form-label fw-bold text-secondary text-uppercase fs-7">

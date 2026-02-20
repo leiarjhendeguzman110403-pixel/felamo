@@ -1,8 +1,8 @@
 <?php
 $servername = "localhost";
-$username   = "root";      // Default for XAMPP/WAMP
-$password   = "";          // Default is empty
-$dbname     = "felamo";    // <--- IMPORTANT: CHANGE THIS TO YOUR DATABASE NAME
+$username   = "u240756803_felamov3";     
+$password   = "hehcE6-fotcab-viskaj";          
+$dbname     = "u240756803_felamov3";
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);

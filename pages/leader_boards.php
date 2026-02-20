@@ -1,16 +1,10 @@
 <?php
 include("components/header.php");
+include_once("../backend/controller/SectionController.php");
 
-// FIX: Safety wrapper for the database call
-$sections = null;
-try {
-    if (isset($AuthController) && method_exists($AuthController, 'GetSections')) {
-        $sections = $AuthController->GetSections($auth_user_id);
-    }
-} catch (Exception $e) {
-    // Prevent crash if database fails
-    $sections = false;
-}
+$sectionController = new SectionController();
+// Fetch sections for this specific teacher
+$sections = $sectionController->GetSectionsResult($auth_user_id);
 ?>
 
 <input type="hidden" id="hidden_user_id" value="<?= isset($auth_user_id) ? $auth_user_id : '' ?>">
@@ -88,7 +82,7 @@ try {
         
         <div class="page-header-banner">
             <div class="header-left">
-                <i class="bi bi-trophy-fill fs-3 me-2 text-warning"></i>
+                <i class="bi bi-trophy-fill fs-3 me-2 text-white"></i>
                 <h4 title="Leader Boards">Leader Boards</h4>
             </div>
 
@@ -98,21 +92,19 @@ try {
                         <i class="bi bi-diagram-3 me-1"></i> Section
                     </label>
                     <select name="section_id" id="sectionDropdown" class="form-select fw-bold">
-                        <option value="">All Sections</option>
-                        <?php 
-                        // FIX: Ensure valid object before looping
-                        if ($sections && is_object($sections) && property_exists($sections, 'num_rows') && $sections->num_rows > 0) {
-                            $sections->data_seek(0);
-                            while ($section = $sections->fetch_assoc()): 
-                        ?>
-                            <option value="<?= htmlspecialchars($section['id']) ?>">
-                                <?= htmlspecialchars($section['section_name']) ?>
-                            </option>
-                        <?php 
-                            endwhile; 
-                        }
-                        ?>
-                    </select>
+    <option value="">All Sections</option>
+    <?php 
+    if ($sections && $sections->num_rows > 0) {
+        while ($section = $sections->fetch_assoc()): 
+    ?>
+        <option value="<?= htmlspecialchars($section['id']) ?>">
+            <?= htmlspecialchars($section['section_name']) ?>
+        </option>
+    <?php 
+        endwhile; 
+    }
+    ?>
+</select>
                 </div>
             </div>
         </div>
