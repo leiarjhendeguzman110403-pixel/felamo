@@ -134,7 +134,11 @@ $isSuperAdmin = isset($user['role']) && $user['role'] === 'super_admin';
     <main class="main-content">
         <div class="page-header shadow-sm">
             <div class="d-flex align-items-center">
-                <a href="my_sections.php" class="btn btn-sm btn-light text-main me-3 rounded-circle" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"><i class="bi bi-arrow-left"></i></a>
+                <?php 
+    // Dynamically grab the previous URL, fallback depending on role if accessed directly
+    $backUrl = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : ($isSuperAdmin ? 'teachers.php' : 'my_sections.php');
+?>
+<a href="<?= htmlspecialchars($backUrl) ?>" class="btn btn-sm btn-light text-main me-3 rounded-circle" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"><i class="bi bi-arrow-left"></i></a>
                 <span><i class="bi bi-people-fill me-2"></i> Students: <?= isset($section['section_name']) ? htmlspecialchars($section['section_name']) : 'Unknown' ?></span>
             </div>
             <div class="d-flex align-items-center gap-2">

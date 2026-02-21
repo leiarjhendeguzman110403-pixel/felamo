@@ -41,13 +41,22 @@ $isSuperAdmin = $user['role'] === 'super_admin';
         <div class="page-header">
             <div><i class="bi bi-person-badge-fill me-2"></i> TEACHERS</div>
             <div class="d-flex align-items-center gap-2">
+                
                 <button class="btn btn-sm btn-light text-main fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#insertTeacherModal">
                     <i class="bi bi-person-plus-fill me-1"></i> Add Teacher
                 </button>
+                
+                <div class="input-group input-group-sm" style="width: 140px;">
+                    <label for="CSV" class="input-group-text bg-light border-0 fw-bold text-secondary w-100 justify-content-center shadow-sm" style="cursor:pointer; border-radius: 4px;">
+                        <i class="bi bi-upload me-2"></i> Import CSV
+                    </label>
+                    <input type="file" id="CSV" class="form-control bg-white border-0" accept=".csv" style="display:none;">
+                </div>
+
             </div>
         </div>
 
-        <div id="page-alert" class="alert alert-warning d-none"></div>
+        <div id="alert" style="display: none;"></div>
 
         <div class="card shadow-sm rounded-3">
             <div class="card-body p-3">
@@ -73,20 +82,26 @@ $isSuperAdmin = $user['role'] === 'super_admin';
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <div id="modal-alert" class="alert alert-danger d-none"></div>
-
+                            
                             <div class="mb-3">
                                 <label class="form-label">Full Name</label>
-                                <input type="text" class="form-control" name="name" required placeholder="Enter Full Name">
+                                <input type="text" class="form-control" id="teacher-name" name="name" required placeholder="Enter Full Name">
                             </div>
+
                             <div class="mb-3">
                                 <label class="form-label">Email</label>
-                                <input type="email" class="form-control" name="email" required placeholder="Enter Email">
+                                <input type="email" class="form-control" id="teacher-email" name="email" required placeholder="Enter Email">
                             </div>
+
                             <div class="mb-3">
                                 <label class="form-label">Password</label>
-                                <input type="password" class="form-control" name="password" required placeholder="Enter Password">
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="teacher-password" name="password" required placeholder="Enter Password">
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword"><i class="bi bi-eye"></i></button>
+                                    <button class="btn btn-outline-secondary" type="button" id="generatePasswordBtn">Generate</button>
+                                </div>
                             </div>
+
                         </div>
                         <div class="modal-footer">
                             <button type="submit" id="btnSaveTeacher" class="btn btn-main text-light" style="background-color: #880f0b; border: none;">Save</button>
@@ -101,109 +116,14 @@ $isSuperAdmin = $user['role'] === 'super_admin';
 
 <?php include("components/footer-scripts.php"); ?>
 
+<script src="scripts/teachers.js"></script>
+
 <script>
     $(document).ready(function() {
-        
-        // 1. Sidebar Toggle
+        // Sidebar Toggle
         $(document).off('click', '.sidebar-toggle').on('click', '.sidebar-toggle', function() {
             $(".dashboard-wrapper").toggleClass("toggled");
         });
-
-        // 2. Load Teachers Logic
-        const loadTeachers = () => {
-            // WE USE ../ BECAUSE WE ARE INSIDE 'PAGES'
-            let backendUrl = "../backend/api/web/teachers.php"; 
-
-            $.ajax({
-                type: "POST",
-                url: backendUrl, 
-                data: { requestType: "GetAllTeachers" }, 
-                dataType: "json",
-                success: function(response) {
-                    if (response.status === "success") {
-                        let rows = "";
-                        if (response.data.length > 0) {
-                            response.data.forEach(t => {
-                                rows += `
-                                    <tr>
-                                        <td class="fw-bold">${t.name}</td>
-                                        <td>${t.email}</td>
-                                        <td><span class="badge bg-secondary">N/A</span></td>
-                                        <td><span class="badge bg-success">Active</span></td>
-                                        <td>
-                                            <a href="assign_sections.php?tId=${t.id}" class="btn btn-sm btn-primary">Assign</a>
-                                        </td>
-                                    </tr>`;
-                            });
-                        } else {
-                            rows = `<tr><td colspan="5" class="text-center text-muted">No teachers found.</td></tr>`;
-                        }
-                        $("#teacher-table-tbody").html(rows);
-                        $("#page-alert").addClass("d-none");
-                    } else {
-                        $("#teacher-table-tbody").html(`<tr><td colspan="5" class="text-center text-danger">${response.message}</td></tr>`);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error("Load Error:", xhr.responseText);
-                    $("#teacher-table-tbody").html(`<tr><td colspan="5" class="text-center text-danger">Connection Failed.</td></tr>`);
-                    if(xhr.status == 404) {
-                        $("#page-alert").removeClass("d-none").text("Error 404: File not found at '../backend/api/web/teachers.php'");
-                    } else if(xhr.status == 500) {
-                         $("#page-alert").removeClass("d-none").text("Error 500: Backend Crash. Check 'teachers.php' code.");
-                    } else {
-                         $("#page-alert").removeClass("d-none").text("Critical Error: " + error);
-                    }
-                }
-            });
-        };
-
-        // 3. Save Teacher Logic
-        $("#insert-teacher-form").on('submit', function(e) {
-            e.preventDefault();
-            
-            let btn = $("#btnSaveTeacher");
-            btn.prop("disabled", true).text("Saving...");
-            $("#modal-alert").addClass("d-none");
-
-            let formData = new FormData(this);
-            formData.append("requestType", "InsertTeacher"); 
-
-            let backendUrl = "../backend/api/web/teachers.php"; 
-
-            $.ajax({
-                type: "POST",
-                url: backendUrl, 
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    try {
-                        let res = (typeof response === 'object') ? response : JSON.parse(response);
-                        
-                        if (res.status === "success") {
-                            alert("Teacher Added Successfully!");
-                            $("#insertTeacherModal").modal("hide");
-                            $("#insert-teacher-form")[0].reset();
-                            loadTeachers(); 
-                        } else {
-                            $("#modal-alert").removeClass("d-none").text("Error: " + res.message);
-                        }
-                    } catch (e) {
-                        $("#modal-alert").removeClass("d-none").text("Server Error: Invalid response.");
-                    }
-                },
-                error: function(xhr) {
-                    $("#modal-alert").removeClass("d-none").text("Connection Failed (Status: " + xhr.status + ").");
-                },
-                complete: function() {
-                    btn.prop("disabled", false).text("Save");
-                }
-            });
-        });
-
-        // Initial Load
-        loadTeachers();
     });
 </script>
 

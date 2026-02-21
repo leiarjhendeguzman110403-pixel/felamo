@@ -15,13 +15,15 @@ if ($level_id) {
 
                 // --- Number to Word Mapping ---
                 $levelNum = $level['level'];
+                
+                // --- NEW LOGIC FOR CORRECT GRAMMAR ---
                 $ordinalMap = [
-                    1 => "Unang",
-                    2 => "Ikalawang",
-                    3 => "Ikatlong",
-                    4 => "Ika-apat na" 
+                    1 => "sa unang",
+                    2 => "sa ikalawang",
+                    3 => "sa ikatlong",
+                    4 => "sa Ika-apat na" 
                 ];
-                $levelText = isset($ordinalMap[$levelNum]) ? $ordinalMap[$levelNum] : $levelNum;
+                $levelText = isset($ordinalMap[$levelNum]) ? $ordinalMap[$levelNum] : "sa markahan " . $levelNum;
 
                 // Authorization check
                 if ($level['teacher_id'] != $auth_user_id) {
@@ -34,7 +36,6 @@ if ($level_id) {
             }
         }
     } catch (Exception $e) {
-        // Log error and redirect safely
         echo "<script>window.location.href='../index.php';</script>";
         exit;
     }
@@ -222,8 +223,8 @@ if ($level_id) {
         </a>
                 
                 <h4 class="m-0 fw-bold text-uppercase">
-                    Aralin ng <?= htmlspecialchars($levelText) ?> Markahan
-                </h4>
+    Aralin <?= htmlspecialchars($levelText) ?> Markahan
+</h4>
             </div>
 
             <div class="header-right">

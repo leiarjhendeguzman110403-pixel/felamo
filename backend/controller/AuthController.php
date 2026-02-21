@@ -25,6 +25,19 @@ class AuthController extends db_connect
         $q->bind_param("i", $id);
         if ($q->execute()) { return $q->get_result(); } else { return null; }
     }
+
+    public function GetUsingId($table, $id)
+    {
+        // Safely fetch data from any table using its ID
+        $q = $this->conn->prepare("SELECT * FROM `$table` WHERE `id` = ?");
+        if ($q) {
+            $q->bind_param("i", $id);
+            if ($q->execute()) {
+                return $q->get_result();
+            }
+        }
+        return false;
+    }
     
     public function GetUser2($id)
     {
